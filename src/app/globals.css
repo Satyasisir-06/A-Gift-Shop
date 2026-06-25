@@ -1,26 +1,673 @@
 @import "tailwindcss";
 
+/* ============================================
+   GIFT STORY — Premium Cold-Luxury Design System
+   Refined gold on deep charcoal + ivory
+   Inspired by architectural jewelry and editorial minimalism
+   ============================================ */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Core Palette - Cold Luxury */
+  --white: #FFFFFF;
+  --black: #0A0A0A;
+  --foreground: #1A1A1A;
+
+  /* Neutral Scale - Cool, architectural */
+  --gray-50: #f8f8f8;
+  --gray-100: #f0f0f0;
+  --gray-200: #e0e0e0;
+  --gray-300: #c4c4c4;
+  --gray-400: #9f9f9f;
+  --gray-500: #7a7a7a;
+  --gray-600: #5a5a5a;
+  --gray-700: #3a3a3a;
+  --gray-800: #242424;
+  --gray-900: #141414;
+
+  /* Beige Palette - Warm luxury base */
+  --beige-50: #FAF8F4;
+  --beige: #F5F0E8;
+  --beige-100: #F0EAE0;
+  --beige-200: #E8E0D4;
+
+  /* Refined Gold System - Metallic, not brass */
+  --gold-50: #fefcf3;
+  --gold-100: #fdf4d6;
+  --gold-200: #fae6a3;
+  --gold-300: #f2d06a;
+  --gold-400: #e8bc40;
+  --gold: #D4AF37;
+  --gold-600: #b8962e;
+  --gold-700: #967a25;
+  --gold-800: #75601c;
+  --gold-900: #544414;
+  --gold-muted: rgba(212, 175, 55, 0.08);
+  --gold-glow: rgba(212, 175, 55, 0.2);
+
+  /* Semantic Colors */
+  --success: #10b981;
+  --danger: #ef4444;
+  --info: #3b82f6;
+
+  /* Radius - Consistent soft system */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  --radius-3xl: 24px;
+  --radius-full: 9999px;
+
+  /* Shadows - Tinted gold-warm for depth */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.03);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.08);
+  --shadow-xl: 0 16px 40px rgba(0, 0, 0, 0.10);
+  --shadow-2xl: 0 24px 64px rgba(0, 0, 0, 0.14);
+  --shadow-gold: 0 4px 20px rgba(212, 175, 55, 0.15);
+  --shadow-gold-lg: 0 8px 32px rgba(212, 175, 55, 0.20);
+
+  /* Transitions */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 400ms cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-spring: 500ms cubic-bezier(0.33, 1, 0.68, 1);
 }
 
 @theme inline {
-  --color-background: var(--background);
+  --color-background: var(--beige);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-black: var(--black);
+  --color-white: var(--white);
+
+  --color-beige: var(--beige);
+  --color-beige-50: var(--beige-50);
+  --color-beige-100: var(--beige-100);
+  --color-beige-200: var(--beige-200);
+
+  --color-gold-50: var(--gold-50);
+  --color-gold-100: var(--gold-100);
+  --color-gold-200: var(--gold-200);
+  --color-gold-300: var(--gold-300);
+  --color-gold-400: var(--gold-400);
+  --color-gold: var(--gold);
+  --color-gold-600: var(--gold-600);
+  --color-gold-700: var(--gold-700);
+  --color-gold-800: var(--gold-800);
+  --color-gold-900: var(--gold-900);
+  --color-gold-muted: var(--gold-muted);
+  --color-gold-glow: var(--gold-glow);
+
+  --color-gray-50: var(--gray-50);
+  --color-gray-100: var(--gray-100);
+  --color-gray-200: var(--gray-200);
+  --color-gray-300: var(--gray-300);
+  --color-gray-400: var(--gray-400);
+  --color-gray-500: var(--gray-500);
+  --color-gray-600: var(--gray-600);
+  --color-gray-700: var(--gray-700);
+  --color-gray-800: var(--gray-800);
+  --color-gray-900: var(--gray-900);
+
+  --color-success: var(--success);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+
+  --font-sans: var(--font-inter);
+  --font-heading: var(--font-poppins);
+
+  --radius-xs: var(--radius-xs);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-2xl: var(--radius-2xl);
+  --radius-3xl: var(--radius-3xl);
+  --radius-full: var(--radius-full);
+
+  --shadow-sm: var(--shadow-sm);
+  --shadow: var(--shadow);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-xl: var(--shadow-xl);
+  --shadow-2xl: var(--shadow-2xl);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ============================================
+   Base Reset & Typography
+   ============================================ */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
-  background: var(--background);
+  margin: 0;
+  background: var(--beige);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), 'Inter', system-ui, sans-serif;
+  font-size: 1rem;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading), 'Poppins', sans-serif;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--black);
+  letter-spacing: -0.02em;
+}
+
+p {
+  color: var(--gray-600);
+  max-width: 65ch;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+/* ============================================
+   Scrollbar
+   ============================================ */
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--gray-100); }
+::-webkit-scrollbar-thumb { background: var(--gray-300); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--gold); }
+
+/* ============================================
+   Gold Text Gradient
+   ============================================ */
+
+.text-gold-gradient {
+  background: linear-gradient(135deg, var(--gold) 0%, #f2d06a 40%, var(--gold) 70%, #f2d06a 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  background-size: 200% 200%;
+  animation: gold-shimmer 4s ease-in-out infinite;
+}
+
+@keyframes gold-shimmer {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* ============================================
+   Button System - Refined
+   ============================================ */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 48px;
+  padding: 0 28px;
+  font-family: var(--font-heading), 'Poppins', sans-serif;
+  font-weight: 600;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+  outline: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn-primary {
+  background: var(--black);
+  color: var(--white);
+}
+
+.btn-primary:hover {
+  background: var(--gold);
+  color: var(--black);
+  box-shadow: var(--shadow-gold);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--black);
+  border: 1.5px solid var(--gray-300);
+}
+
+.btn-secondary:hover {
+  border-color: var(--black);
+  background: var(--gray-50);
+}
+
+.btn-gold {
+  background: var(--gold);
+  color: var(--black);
+  font-weight: 700;
+}
+
+.btn-gold:hover {
+  background: var(--gold-600);
+  box-shadow: var(--shadow-gold);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--gray-700);
+  padding: 0 8px;
+  height: auto;
+}
+
+.btn-ghost:hover {
+  color: var(--black);
+}
+
+/* ============================================
+   Card System
+   ============================================ */
+
+.card {
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-spring);
+}
+
+.card-hover:hover {
+  border-color: var(--gold);
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-4px);
+}
+
+/* ============================================
+   Input System
+   ============================================ */
+
+.input {
+  width: 100%;
+  background: var(--gray-50);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  font-family: var(--font-inter), 'Inter', system-ui, sans-serif;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  line-height: 1.5;
+  letter-spacing: 0.01em;
+  color: var(--foreground);
+  outline: none;
+  transition: all var(--transition-fast);
+}
+
+.input::placeholder {
+  color: var(--gray-400);
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.input:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px var(--gold-muted);
+  background: var(--white);
+}
+
+.input::placeholder {
+  color: var(--gray-400);
+}
+
+/* ============================================
+   Badge System
+   ============================================ */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-radius: var(--radius-full);
+  border: 1px solid;
+}
+
+.badge-gold {
+  background: var(--gold-muted);
+  border-color: var(--gold-300);
+  color: var(--gold-700);
+}
+
+.badge-black {
+  background: var(--black);
+  border-color: var(--black);
+  color: var(--white);
+}
+
+.badge-success {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.2);
+  color: #059669;
+}
+
+/* ============================================
+   Divider
+   ============================================ */
+
+.divider {
+  width: 100%;
+  height: 1px;
+  background: var(--gray-200);
+  border: none;
+}
+
+.divider-gold {
+  width: 40px;
+  height: 2px;
+  background: var(--gold);
+  border: none;
+}
+
+/* ============================================
+   Section Wrapper
+   ============================================ */
+
+.section {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+@media (min-width: 768px) {
+  .section { padding: 0 32px; }
+}
+
+/* ============================================
+   Loading Skeleton
+   ============================================ */
+
+@keyframes shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, var(--gray-100) 25%, var(--gray-200) 50%, var(--gray-100) 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+}
+
+/* ============================================
+   Operator Console - CRT & Scanline Effects
+   ============================================ */
+
+/* CRT scanline overlay */
+.console-crt::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.03) 2px,
+    rgba(0, 0, 0, 0.03) 4px
+  );
+}
+
+/* Subtle CRT glow on interactive elements */
+.console-glow {
+  box-shadow: 0 0 8px rgba(212, 175, 55, 0.08), 0 0 1px rgba(212, 175, 55, 0.15);
+}
+
+.console-glow-emerald {
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.08), 0 0 1px rgba(16, 185, 129, 0.15);
+}
+
+/* Scanning line animation for active elements */
+@keyframes console-scan {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+.console-scan {
+  position: relative;
+  overflow: hidden;
+}
+
+.console-scan::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.08), transparent);
+  animation: console-scan 4s linear infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Terminal cursor blink */
+@keyframes blink-cursor {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.console-cursor::after {
+  content: '_';
+  animation: blink-cursor 1s step-end infinite;
+  color: var(--gold);
+}
+
+/* Boot animation keyframes */
+@keyframes boot-progress {
+  0% { width: 0%; }
+  20% { width: 22%; }
+  40% { width: 48%; }
+  60% { width: 65%; }
+  80% { width: 82%; }
+  100% { width: 100%; }
+}
+
+/* Pulse for active status indicators */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
+}
+
+.console-pulse-dot {
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+/* Fade in for terminal log entries */
+@keyframes log-entry {
+  0% { opacity: 0; transform: translateX(-4px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+.console-log-entry {
+  animation: log-entry 0.2s ease-out;
+}
+
+/* ============================================
+   Premium Admin - Gold Accents & Micro-interactions
+   ============================================ */
+
+/* Gold border accent for premium cards */
+.admin-card-gold-top {
+  border-top: 2px solid var(--gold);
+  position: relative;
+}
+
+.admin-card-gold-top::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 2px;
+  background: var(--gold);
+  border-radius: 0 0 2px 2px;
+  transition: width 0.3s ease;
+}
+
+.admin-card-gold-top:hover::before {
+  width: 80px;
+}
+
+/* Glass morphism for active sidebar */
+.admin-glass-active {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.12), rgba(212, 175, 55, 0.04));
+  border-left: 2px solid var(--gold);
+  box-shadow: inset 0 0 20px rgba(212, 175, 55, 0.05);
+}
+
+/* Card hover lift */
+.admin-card-lift {
+  transition: all 0.3s cubic-bezier(0.33, 1, 0.68, 1);
+}
+
+.admin-card-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.06), 0 2px 6px rgba(0, 0, 0, 0.02);
+}
+
+/* Gold shimmer for stat values */
+@keyframes gold-text-shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.admin-gold-shimmer {
+  background: linear-gradient(90deg, var(--gold) 0%, #f2d06a 50%, var(--gold) 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gold-text-shimmer 4s ease-in-out infinite;
+}
+
+/* Status timeline connector */
+.status-connector {
+  position: relative;
+}
+
+.status-connector::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 100%;
+  width: 8px;
+  height: 1px;
+  background: var(--gray-300);
+}
+
+/* Button press effect */
+.btn-press:active {
+  transform: scale(0.97);
+}
+
+/* Gold gradient accent bar */
+.admin-gold-bar {
+  height: 3px;
+  background: linear-gradient(90deg, var(--gold) 0%, var(--gold-300) 50%, var(--gold) 100%);
+  border: none;
+  border-radius: 2px;
+}
+
+/* Subtle pulse for status indicators */
+@keyframes status-pulse-soft {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.2); }
+  50% { box-shadow: 0 0 0 4px rgba(212, 175, 55, 0); }
+}
+
+.admin-status-pulse {
+  animation: status-pulse-soft 2s ease-in-out infinite;
+}
+
+/* Mini progress bar for stat cards */
+.admin-mini-bar {
+  height: 2px;
+  border-radius: 1px;
+  background: var(--gray-100);
+  overflow: hidden;
+}
+
+.admin-mini-bar-fill {
+  height: 100%;
+  border-radius: 1px;
+  background: linear-gradient(90deg, var(--gold), var(--gold-300));
+  transition: width 1s ease;
+}
+
+/* Decorative gold corner accent */
+.admin-gold-corner {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 40px;
+  height: 40px;
+  overflow: hidden;
+}
+
+.admin-gold-corner::before {
+  content: '';
+  position: absolute;
+  top: -20px;
+  right: -20px;
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, transparent 50%, rgba(212, 175, 55, 0.08) 50%);
+  transform: rotate(45deg);
+}
+
+/* ============================================
+   Status Dot
+   ============================================ */
+
+.status-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--gold);
+}
+
+/* ============================================
+   Reduced Motion
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  html { scroll-behavior: auto; }
 }
