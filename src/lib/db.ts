@@ -44,6 +44,11 @@ export interface StudioVideo {
   thumbnail?: string;
 }
 
+export interface PaymentConfig {
+  qrUrl: string;
+  upiId: string;
+}
+
 export interface OrderItem {
   id: string;
   product_id: string;
@@ -866,10 +871,12 @@ export class DB {
         if (itemsError) {
           console.error("Error inserting order items:", itemsError?.message || JSON.stringify(itemsError));
         }
-
+        
         createdOrder = {
           ...order,
           id: orderId,
+          whatsapp_code: generatedCode,
+          images_received: false,
           created_at: createdAt
         };
       }
@@ -1122,5 +1129,35 @@ export class DB {
 
     if (typeof window === 'undefined') return;
     localStorage.setItem('gs_studio_videos', JSON.stringify(videos));
+  }
+
+  static async getPaymentConfig(): Promise<PaymentConfig> {
+    const defaultCfg = { qrUrl: '/payment-qr.jpg', upiId: 'agiftstory@icici' };
+    try {
+      const { data, error } = await supabase.from('announcements').select('description').eq('id', '00000000-0000-0000-0000-000000000004').single();
+      if (!error && data && data.description) {
+        if (typeof window !== 'undefined') localStorage.setItem('gs_payment_cfg', data.description);
+        return JSON.parse(data.description);
+      }
+    } catch (e) {}
+
+    if (typeof window === 'undefined') return defaultCfg;
+    const stored = localStorage.getItem('gs_payment_cfg');
+    return stored ? JSON.parse(stored) : defaultCfg;
+  }
+
+  static async setPaymentConfig(cfg: PaymentConfig): Promise<void> {
+    try {
+      await supabase.from('announcements').upsert({
+        id: '00000000-0000-0000-0000-000000000004',
+        title: 'system_payment_cfg',
+        description: JSON.stringify(cfg),
+        type: 'system',
+        created_at: new Date().toISOString()
+      });
+    } catch (e) {}
+
+    if (typeof window === 'undefined') return;
+    localStorage.setItem('gs_payment_cfg', JSON.stringify(cfg));
   }
 }

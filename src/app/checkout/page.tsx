@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/lib/context/CartContext';
 import { useAuth } from '@/lib/context/AuthContext';
+import { DB, PaymentConfig } from '@/lib/db';
 import { CreditCard, Check, QrCode, ArrowRight, Truck, ShieldCheck, User as UserIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -27,9 +28,20 @@ export default function Checkout() {
   const [couponError, setCouponError] = useState(false);
   const [couponSuccess, setCouponSuccess] = useState(false);
 
+  const [paymentConfig, setPaymentConfig] = useState<PaymentConfig | null>(null);
+
   const [showUPIModal, setShowUPIModal] = useState(false);
+  const [utrNumber, setUtrNumber] = useState('');
   const [loadingOrder, setLoadingOrder] = useState(false);
   const isPlacingOrder = useRef(false);
+
+  useEffect(() => {
+    const fetchCfg = async () => {
+      const cfg = await DB.getPaymentConfig();
+      setPaymentConfig(cfg);
+    };
+    fetchCfg();
+  }, []);
 
   useEffect(() => {
     if (cart.length === 0 && !showUPIModal && !isPlacingOrder.current) {
@@ -90,6 +102,18 @@ export default function Checkout() {
   };
 
   const handleConfirmUPIPayment = async () => {
+    if (utrNumber.trim().length < 10) {
+      alert("Please enter a valid UTR or reference number (min 10 characters).");
+      return;
+    }
+    
+    // Play success sound
+    try {
+      const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3');
+      audio.volume = 0.5;
+      await audio.play().catch(() => {});
+    } catch(e) {}
+
     setShowUPIModal(false);
     setLoadingOrder(true);
     isPlacingOrder.current = true;
@@ -278,37 +302,42 @@ export default function Checkout() {
                 </div>
 
                 {/* QR Code */}
-                <div className="w-48 h-48 mx-auto bg-gray-50 border border-gray-200 rounded-xl p-4 flex items-center justify-center shadow-inner">
-                  <svg viewBox="0 0 100 100" className="w-full h-full text-gray-900">
-                    <rect x="0" y="0" width="25" height="25" fill="none" stroke="currentColor" strokeWidth="6" />
-                    <rect x="5" y="5" width="15" height="15" fill="currentColor" />
-                    <rect x="75" y="0" width="25" height="25" fill="none" stroke="currentColor" strokeWidth="6" />
-                    <rect x="80" y="5" width="15" height="15" fill="currentColor" />
-                    <rect x="0" y="75" width="25" height="25" fill="none" stroke="currentColor" strokeWidth="6" />
-                    <rect x="5" y="80" width="15" height="15" fill="currentColor" />
-                    <rect x="35" y="5" width="8" height="8" fill="currentColor" />
-                    <rect x="50" y="15" width="12" height="6" fill="currentColor" />
-                    <rect x="10" y="35" width="14" height="8" fill="currentColor" />
-                    <rect x="35" y="35" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="4" />
-                    <rect x="42" y="42" width="6" height="6" fill="currentColor" />
-                    <rect x="68" y="35" width="10" height="12" fill="currentColor" />
-                    <rect x="78" y="55" width="14" height="6" fill="currentColor" />
-                    <rect x="35" y="65" width="18" height="10" fill="currentColor" />
-                    <rect x="65" y="65" width="25" height="25" fill="none" stroke="currentColor" strokeWidth="4" />
-                    <rect x="75" y="75" width="8" height="8" fill="currentColor" />
-                    <rect x="40" y="40" width="20" height="20" fill="white" />
-                    <rect x="43" y="43" width="14" height="14" fill="#D4AF37" />
-                  </svg>
+                <div className="w-48 h-48 mx-auto bg-gray-50 border border-gray-200 rounded-xl overflow-hidden flex items-center justify-center shadow-inner relative">
+                  <img 
+                    src={paymentConfig?.qrUrl || "/payment-qr.jpg"} 
+                    alt="Payment QR Code" 
+                    className="w-full h-full object-contain"
+                    onError={(e) => { e.currentTarget.src = 'https://upload.wikimedia.org/wikipedia/commons/d/d0/QR_code_for_mobile_English_Wikipedia.svg' }}
+                  />
                 </div>
 
                 <div className="text-xs text-gray-500 space-y-1 bg-gray-50 rounded-lg p-3">
                   <p>Scan with any UPI app (GPay, PhonePe, Paytm)</p>
-                  <p className="font-semibold text-gray-800">UPI ID: agiftstory@icici</p>
+                  <p className="font-semibold text-gray-800">UPI ID: {paymentConfig?.upiId || "agiftstory@icici"}</p>
+                </div>
+
+                {/* UTR Input Section */}
+                <div className="space-y-1.5 text-left border-t border-gray-100 pt-4">
+                  <label className="block text-[11px] font-heading font-bold text-gray-700 uppercase">UTR / Reference Number *</label>
+                  <input 
+                    type="text" 
+                    required 
+                    value={utrNumber} 
+                    onChange={(e) => setUtrNumber(e.target.value)} 
+                    placeholder="Enter 12-digit UTR number" 
+                    className="input text-sm border-gold focus:ring-gold/30" 
+                    maxLength={20}
+                  />
+                  <p className="text-[10px] text-gray-400 font-medium">After successful payment, enter the UTR number here to confirm your order.</p>
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-3">
                   <button onClick={() => setShowUPIModal(false)} className="btn btn-secondary flex-1 text-xs h-11">Cancel</button>
-                  <button onClick={handleConfirmUPIPayment} className="btn btn-gold flex-1 text-xs h-11">
+                  <button 
+                    onClick={handleConfirmUPIPayment} 
+                    disabled={utrNumber.trim().length < 10}
+                    className={`btn flex-1 text-xs h-11 transition-all ${utrNumber.trim().length >= 10 ? 'btn-gold shadow-lg shadow-gold/20' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                  >
                     <Check size={14} /> Confirm Payment
                   </button>
                 </div>

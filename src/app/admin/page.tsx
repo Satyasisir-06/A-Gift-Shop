@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/context/AuthContext';
-import { DB, Product, Order, Announcement, PopupOffer, CATEGORIES, Collection, Coupon, StudioVideo } from '@/lib/db';
+import { DB, Product, Order, Announcement, PopupOffer, CATEGORIES, Collection, Coupon, StudioVideo, PaymentConfig } from '@/lib/db';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Plus, Trash2, Volume2, DollarSign, ShoppingBag, Boxes, 
@@ -69,7 +69,7 @@ export default function AdminPanel() {
   const router = useRouter();
   const { user, logout } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'orders' | 'products' | 'announcements' | 'popups' | 'homepage' | 'coupons' | 'videos'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'orders' | 'products' | 'announcements' | 'popups' | 'homepage' | 'coupons' | 'videos' | 'settings'>('overview');
   
   // Data State
   const [orders, setOrders] = useState<Order[]>([]);
@@ -78,6 +78,7 @@ export default function AdminPanel() {
   const [bestsellerIds, setBestsellerIds] = useState<string[]>([]);
   const [collections, setCollections] = useState<Collection[]>([]);
   const [studioVideos, setStudioVideos] = useState<StudioVideo[]>([]);
+  const [paymentConfig, setPaymentConfig] = useState<PaymentConfig>({ qrUrl: '', upiId: '' });
 
   // Search & Filter
   const [orderSearch, setOrderSearch] = useState('');
@@ -357,6 +358,22 @@ export default function AdminPanel() {
     finally { setIsUploading(false); }
   };
 
+  const handleQRUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setIsUploading(true);
+      const url = await DB.uploadProductImage(file);
+      setPaymentConfig(prev => ({ ...prev, qrUrl: url }));
+      addLog('Uploaded new QR Code image', 'success');
+    } catch (err) {
+      console.error("Upload error:", err);
+      alert("Failed to upload image.");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleProdAdditionalImagesUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
@@ -614,6 +631,7 @@ export default function AdminPanel() {
     { id: 'popups', label: 'Popup Offers', icon: Eye, count: popupOffers.length },
     { id: 'coupons', label: 'Coupons', icon: Sparkles, count: coupons.length },
     { id: 'videos', label: 'Studio Videos', icon: Video },
+    { id: 'settings', label: 'Store Settings', icon: Settings },
     { id: 'homepage', label: 'Homepage Editor', icon: LayoutDashboard },
   ] as const;
 
@@ -1901,6 +1919,66 @@ export default function AdminPanel() {
                         ))
                       )}
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {/* SETTINGS TAB */}
+              {activeTab === 'settings' && (
+                <div className="space-y-6">
+                  <div className="flex justify-between items-center bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                    <div>
+                      <h2 className="font-heading text-xl font-bold uppercase tracking-widest text-gray-900">Store Settings</h2>
+                      <p className="text-sm text-gray-500 mt-1">Configure global store parameters like payment options.</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-6">
+                    <h3 className="font-heading font-bold text-lg text-gray-900 border-b pb-2">Payment Configuration</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Payment QR Code URL</label>
+                        <div className="flex gap-2">
+                          <input 
+                            type="text" 
+                            value={paymentConfig.qrUrl}
+                            onChange={(e) => setPaymentConfig({ ...paymentConfig, qrUrl: e.target.value })}
+                            className="input text-sm flex-1"
+                            placeholder="/payment-qr.jpg or https://..."
+                          />
+                          <label className="px-4 py-2 rounded-lg border border-gray-200 bg-gray-50 text-gray-600 hover:text-gray-900 text-sm font-bold cursor-pointer transition-all flex items-center shadow-sm whitespace-nowrap">
+                            <span>{isUploading ? 'Uploading...' : 'Browse Photo'}</span>
+                            <input type="file" accept="image/*" disabled={isUploading} onChange={handleQRUpload} className="hidden" />
+                          </label>
+                        </div>
+                        <p className="text-[10px] text-gray-400 mt-1">This image will be displayed during checkout for UPI payments.</p>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-gray-700 uppercase mb-1">UPI ID</label>
+                        <input 
+                          type="text" 
+                          value={paymentConfig.upiId}
+                          onChange={(e) => setPaymentConfig({ ...paymentConfig, upiId: e.target.value })}
+                          className="input text-sm w-full"
+                          placeholder="yourname@upi"
+                        />
+                      </div>
+                      <button 
+                        onClick={async () => {
+                          await DB.setPaymentConfig(paymentConfig);
+                          addLog('Updated store payment configuration', 'success');
+                        }}
+                        className="btn btn-gold text-xs"
+                      >
+                        <Check size={16} /> Save Settings
+                      </button>
+                    </div>
+                    {paymentConfig.qrUrl && (
+                      <div className="mt-4 p-4 bg-gray-50 rounded border inline-block">
+                        <p className="text-xs font-bold text-gray-500 mb-2 uppercase">QR Code Preview:</p>
+                        <img src={paymentConfig.qrUrl} alt="QR Preview" className="w-32 h-32 object-contain" />
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
