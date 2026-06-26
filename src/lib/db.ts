@@ -72,7 +72,7 @@ export interface Order {
   user_phone: string;
   items: OrderItem[];
   total_price: number;
-  status: 'Pending' | 'Confirmed' | 'Designing' | 'Production' | 'Shipped' | 'Delivered';
+  status: 'Pending' | 'Confirmed' | 'Designing' | 'Production' | 'Shipped' | 'Delivered' | 'Cancelled';
   shipping_address: string;
   payment_method: 'UPI' | 'COD' | 'Card';
   shipping_carrier?: string;

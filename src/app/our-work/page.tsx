@@ -144,7 +144,7 @@ export default function OurWorkPage() {
                         title={`Instagram Video ${index + 1}`}
                         className="w-full h-full border-none"
                         scrolling="no"
-                        allowTransparency={true}
+                        allowtransparency={true}
                         allow="encrypted-media"
                       ></iframe>
                     ) : (

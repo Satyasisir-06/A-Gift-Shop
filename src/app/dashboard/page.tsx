@@ -36,6 +36,17 @@ export default function UserDashboard() {
     );
   }
 
+  const handleCancelOrder = async (orderId: string) => {
+    if (!window.confirm("Are you sure you want to cancel this order?")) return;
+    try {
+      await DB.updateOrderStatus(orderId, 'Cancelled');
+      setOrders(orders.map(o => o.id === orderId ? { ...o, status: 'Cancelled' } : o));
+    } catch (err) {
+      console.error("Failed to cancel order:", err);
+      alert("Failed to cancel order.");
+    }
+  };
+
   return (
     <div className="bg-beige min-h-screen py-12">
       <div className="section max-w-5xl space-y-8">
@@ -99,6 +110,7 @@ export default function UserDashboard() {
                       </div>
                     </div>
                     <span className={`text-[10px] border px-3 py-1 rounded font-bold uppercase tracking-wider ${
+                      order.status === 'Cancelled' ? 'bg-red-50 border-red-200 text-red-700' :
                       order.status === 'Pending' ? 'bg-orange-50 border-orange-200 text-orange-700' :
                       order.status === 'Confirmed' ? 'bg-blue-50 border-blue-200 text-blue-700' :
                       order.status === 'Delivered' ? 'bg-green-50 border-green-200 text-green-700' :
@@ -140,6 +152,14 @@ export default function UserDashboard() {
                         </span>
                       )}
                       <span>Payment: <strong className="text-gray-700 font-semibold uppercase">{order.payment_method}</strong></span>
+                      {order.status === 'Pending' && (
+                        <button 
+                          onClick={() => handleCancelOrder(order.id)}
+                          className="ml-2 text-red-500 hover:text-red-700 font-bold transition-colors underline"
+                        >
+                          Cancel Order
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>

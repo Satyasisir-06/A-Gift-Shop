@@ -64,6 +64,7 @@ const generateUUID = () => {
 };
 
 const ORDER_STEPS: Order['status'][] = ['Pending', 'Confirmed', 'Designing', 'Production', 'Shipped', 'Delivered'];
+const ALL_ORDER_STATUSES: Order['status'][] = [...ORDER_STEPS, 'Cancelled'];
 
 export default function AdminPanel() {
   const router = useRouter();
@@ -1077,7 +1078,7 @@ export default function AdminPanel() {
                         className="bg-neutral-50/60 border border-neutral-200/80 rounded-lg px-3 py-2.5 text-sm text-neutral-700 focus:outline-none focus:border-gold font-mono w-full md:w-44 cursor-pointer"
                       >
                         <option value="All">All statuses</option>
-                        {ORDER_STEPS.map(step => <option key={step} value={step}>{step}</option>)}
+                        {ALL_ORDER_STATUSES.map(step => <option key={step} value={step}>{step}</option>)}
                       </select>
                     </div>
 
@@ -1181,7 +1182,7 @@ export default function AdminPanel() {
                                 onChange={(e: any) => handleUpdateStatus(order.id, e.target.value)} 
                                 className="bg-white border border-neutral-200/80 rounded-lg px-2.5 py-1.5 text-xs font-mono text-neutral-700 focus:outline-none focus:border-gold cursor-pointer"
                               >
-                                {ORDER_STEPS.map(step => <option key={step} value={step}>{step}</option>)}
+                                {ALL_ORDER_STATUSES.map(step => <option key={step} value={step}>{step}</option>)}
                               </select>
                             </div>
                           </div>
@@ -1193,45 +1194,56 @@ export default function AdminPanel() {
                               {/* Background connection line */}
                               <div className="absolute left-3 right-3 top-3 h-[2px] bg-neutral-100 z-0">
                                 <div 
-                                  className="h-full bg-gold transition-all duration-500" 
+                                  className={`h-full transition-all duration-500 ${order.status === 'Cancelled' ? 'bg-red-500' : 'bg-gold'}`} 
                                   style={{ 
-                                    width: `${(ORDER_STEPS.indexOf(order.status) / (ORDER_STEPS.length - 1)) * 100}%` 
+                                    width: order.status === 'Cancelled' ? '100%' : `${(ORDER_STEPS.indexOf(order.status) / (ORDER_STEPS.length - 1)) * 100}%` 
                                   }} 
                                 />
                               </div>
 
-                              {ORDER_STEPS.map((step, idx) => {
-                                const stepIndex = ORDER_STEPS.indexOf(order.status);
-                                const isCurrent = order.status === step;
-                                const isPast = stepIndex >= idx;
-                                
-                                return (
-                                  <div key={step} className="flex flex-col items-center z-10 relative">
-                                    <div 
-                                      className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold font-mono transition-all duration-500 shadow ${
-                                        isCurrent 
-                                          ? 'bg-gold text-black ring-4 ring-gold/15' 
-                                          : isPast 
-                                            ? 'bg-neutral-900 text-white' 
-                                            : 'bg-white border border-neutral-200 text-neutral-400'
-                                      }`}
-                                    >
-                                      {isPast && !isCurrent ? <Check size={12} className="stroke-[2.5]" /> : idx + 1}
-                                    </div>
-                                    <span 
-                                      className={`text-[10.5px] font-mono uppercase tracking-widest mt-2 transition-colors duration-300 ${
-                                        isCurrent 
-                                          ? 'text-gold font-bold' 
-                                          : isPast 
-                                            ? 'text-neutral-900 font-semibold' 
-                                            : 'text-neutral-400'
-                                      }`}
-                                    >
-                                      {step}
-                                    </span>
+                              {order.status === 'Cancelled' ? (
+                                <div className="w-full flex flex-col items-center z-10 relative">
+                                  <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold font-mono transition-all duration-500 shadow bg-red-500 text-white ring-4 ring-red-500/15">
+                                    <X size={12} className="stroke-[2.5]" />
                                   </div>
-                                );
-                              })}
+                                  <span className="text-[10.5px] font-mono uppercase tracking-widest mt-2 transition-colors duration-300 text-red-500 font-bold">
+                                    Order Cancelled
+                                  </span>
+                                </div>
+                              ) : (
+                                ORDER_STEPS.map((step, idx) => {
+                                  const stepIndex = ORDER_STEPS.indexOf(order.status);
+                                  const isCurrent = order.status === step;
+                                  const isPast = stepIndex >= idx;
+                                  
+                                  return (
+                                    <div key={step} className="flex flex-col items-center z-10 relative">
+                                      <div 
+                                        className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold font-mono transition-all duration-500 shadow ${
+                                          isCurrent 
+                                            ? 'bg-gold text-black ring-4 ring-gold/15' 
+                                            : isPast 
+                                              ? 'bg-neutral-900 text-white' 
+                                              : 'bg-white border border-neutral-200 text-neutral-400'
+                                        }`}
+                                      >
+                                        {isPast && !isCurrent ? <Check size={12} className="stroke-[2.5]" /> : idx + 1}
+                                      </div>
+                                      <span 
+                                        className={`text-[10.5px] font-mono uppercase tracking-widest mt-2 transition-colors duration-300 ${
+                                          isCurrent 
+                                            ? 'text-gold font-bold' 
+                                            : isPast 
+                                              ? 'text-neutral-900 font-semibold' 
+                                              : 'text-neutral-400'
+                                        }`}
+                                      >
+                                        {step}
+                                      </span>
+                                    </div>
+                                  );
+                                })
+                              )}
                             </div>
                           </div>
 

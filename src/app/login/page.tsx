@@ -4,13 +4,15 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, User, Phone, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import { Mail, User, Phone, Lock, Eye, EyeOff, ArrowRight, ArrowLeft } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 export default function LoginPage() {
   const router = useRouter();
   const { user, login, register } = useAuth();
 
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -49,14 +51,23 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
-    if (!email || !password) {
-      setErrorMsg("Email and password are required.");
+    if (!email || (!isForgotPassword && !password)) {
+      setErrorMsg(isForgotPassword ? "Email is required." : "Email and password are required.");
       return;
     }
     setLoading(true);
     try {
-      if (isSignUp) {
-        if (!name) {
+        if (isForgotPassword) {
+          const { error } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: `${window.location.origin}/update-password`,
+          });
+          if (error) throw new Error(error.message);
+          setErrorMsg("Password reset link sent! Check your email.");
+          return;
+        }
+
+        if (isSignUp) {
+          if (!name) {
           setErrorMsg("Name is required for registration.");
           setLoading(false);
           return;
@@ -152,42 +163,45 @@ export default function LoginPage() {
           {/* ============================================ */}
           {/* Tab Toggle */}
           {/* ============================================ */}
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.4 }}
-            className="flex bg-gray-100/80 rounded-xl p-1 mb-6"
-          >
-            <button
-              type="button"
-              onClick={() => { setIsSignUp(false); setErrorMsg(''); }}
-              className={`relative flex-1 py-2.5 text-xs font-heading font-bold uppercase tracking-wider rounded-lg transition-all duration-300 ${
-                !isSignUp
-                  ? 'text-black shadow-sm bg-white'
-                  : 'text-gray-400 hover:text-gray-600'
-              }`}
+
+          {!isForgotPassword && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.4 }}
+              className="flex bg-gray-100/80 rounded-xl p-1 mb-6"
             >
-              <span className="relative z-10">Sign In</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => { setIsSignUp(true); setErrorMsg(''); }}
-              className={`relative flex-1 py-2.5 text-xs font-heading font-bold uppercase tracking-wider rounded-lg transition-all duration-300 ${
-                isSignUp
-                  ? 'text-black shadow-sm bg-white'
-                  : 'text-gray-400 hover:text-gray-600'
-              }`}
-            >
-              <span className="relative z-10">Register</span>
-            </button>
-          </motion.div>
+              <button
+                type="button"
+                onClick={() => { setIsSignUp(false); setErrorMsg(''); }}
+                className={`relative flex-1 py-2.5 text-xs font-heading font-bold uppercase tracking-wider rounded-lg transition-all duration-300 ${
+                  !isSignUp
+                    ? 'text-black shadow-sm bg-white'
+                    : 'text-gray-400 hover:text-gray-600'
+                }`}
+              >
+                <span className="relative z-10">Sign In</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => { setIsSignUp(true); setErrorMsg(''); }}
+                className={`relative flex-1 py-2.5 text-xs font-heading font-bold uppercase tracking-wider rounded-lg transition-all duration-300 ${
+                  isSignUp
+                    ? 'text-black shadow-sm bg-white'
+                    : 'text-gray-400 hover:text-gray-600'
+                }`}
+              >
+                <span className="relative z-10">Register</span>
+              </button>
+            </motion.div>
+          )}
 
           {/* ============================================ */}
           {/* Form */}
           {/* ============================================ */}
           <AnimatePresence mode="wait">
             <motion.form
-              key={isSignUp ? 'register' : 'signin'}
+              key={isForgotPassword ? 'forgot' : isSignUp ? 'register' : 'signin'}
               initial={{ opacity: 0, x: -12 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 12 }}
@@ -195,7 +209,15 @@ export default function LoginPage() {
               onSubmit={handleSubmit}
               className="space-y-4"
             >
-              {isSignUp && (
+              {isForgotPassword && (
+                <div className="text-center mb-6">
+                  <p className="text-xs text-gray-500 font-medium px-4">
+                    Enter your email address and we'll send you a secure link to reset your password.
+                  </p>
+                </div>
+              )}
+
+              {!isForgotPassword && isSignUp && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
@@ -253,39 +275,56 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="block text-[11px] font-heading font-bold text-gray-500 uppercase tracking-wider">
-                  Password <span className="text-gold">*</span>
-                </label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="input !pl-11 !pr-10 h-12"
-                    required
-                  />
-                  <Lock size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                    tabIndex={-1}
-                  >
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
+              {!isForgotPassword && (
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-[11px] font-heading font-bold text-gray-500 uppercase tracking-wider">
+                      Password <span className="text-gold">*</span>
+                    </label>
+                    {!isSignUp && (
+                      <button 
+                        type="button"
+                        onClick={() => { setIsForgotPassword(true); setErrorMsg(''); }}
+                        className="text-[10px] font-semibold text-gold hover:text-gold-600 transition-colors"
+                      >
+                        Forgot Password?
+                      </button>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="input !pl-11 !pr-10 h-12"
+                      required
+                    />
+                    <Lock size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                      tabIndex={-1}
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              {/* Error Message */}
+              {/* Error/Success Message */}
               <AnimatePresence>
                 {errorMsg && (
                   <motion.p
                     initial={{ opacity: 0, y: -6, height: 0 }}
                     animate={{ opacity: 1, y: 0, height: 'auto' }}
                     exit={{ opacity: 0, y: -6, height: 0 }}
-                    className="text-xs text-red-500 font-semibold bg-red-50/80 border border-red-100 rounded-xl px-4 py-2.5 leading-relaxed"
+                    className={`text-xs font-semibold border rounded-xl px-4 py-2.5 leading-relaxed ${
+                      errorMsg.includes('sent') 
+                        ? 'text-green-600 bg-green-50/80 border-green-100' 
+                        : 'text-red-500 bg-red-50/80 border-red-100'
+                    }`}
                   >
                     {errorMsg}
                   </motion.p>
@@ -306,12 +345,24 @@ export default function LoginPage() {
                     </>
                   ) : (
                     <>
-                      {isSignUp ? 'Create Account' : 'Sign In'}
-                      <ArrowRight size={16} />
+                      {isForgotPassword ? 'Send Reset Link' : isSignUp ? 'Create Account' : 'Sign In'}
+                      {isForgotPassword ? null : <ArrowRight size={16} />}
                     </>
                   )}
                 </span>
               </button>
+
+              {isForgotPassword && (
+                <div className="text-center mt-4">
+                  <button
+                    type="button"
+                    onClick={() => { setIsForgotPassword(false); setErrorMsg(''); }}
+                    className="text-xs font-medium text-gray-500 hover:text-gray-700 transition-colors inline-flex items-center gap-1.5"
+                  >
+                    <ArrowLeft size={14} /> Back to Sign In
+                  </button>
+                </div>
+              )}
             </motion.form>
           </AnimatePresence>
         </div>

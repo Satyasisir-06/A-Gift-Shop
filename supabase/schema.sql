@@ -77,7 +77,7 @@ CREATE TABLE IF NOT EXISTS public.orders (
     user_email TEXT NOT NULL,
     user_phone TEXT,
     total_price INT NOT NULL CHECK (total_price >= 0),
-    status TEXT NOT NULL DEFAULT 'Pending' CHECK (status IN ('Pending', 'Confirmed', 'Designing', 'Production', 'Shipped', 'Delivered')),
+    status TEXT NOT NULL DEFAULT 'Pending' CHECK (status IN ('Pending', 'Confirmed', 'Designing', 'Production', 'Shipped', 'Delivered', 'Cancelled')),
     shipping_address TEXT NOT NULL,
     payment_method TEXT NOT NULL CHECK (payment_method IN ('UPI', 'COD', 'Card')),
     whatsapp_code VARCHAR(10),
