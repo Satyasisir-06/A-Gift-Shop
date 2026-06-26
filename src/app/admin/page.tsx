@@ -70,7 +70,7 @@ export default function AdminPanel() {
   const router = useRouter();
   const { user, logout } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'orders' | 'products' | 'announcements' | 'popups' | 'homepage' | 'coupons' | 'videos' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'insights' | 'orders' | 'products' | 'announcements' | 'popups' | 'homepage' | 'coupons' | 'videos' | 'settings'>('overview');
   
   // Data State
   const [orders, setOrders] = useState<Order[]>([]);
@@ -97,6 +97,8 @@ export default function AdminPanel() {
   const [editImages, setEditImages] = useState('');
   const [editMinQty, setEditMinQty] = useState(1);
   const [editCustom, setEditCustom] = useState(true);
+  const [csvStartDate, setCsvStartDate] = useState('');
+  const [csvEndDate, setCsvEndDate] = useState('');
 
   // Tracking details update states
   const [trackingOrder, setTrackingOrder] = useState<string | null>(null);
@@ -248,6 +250,13 @@ export default function AdminPanel() {
     }
     await DB.updateOrderStatus(orderId, status);
     addLog(`Order ${orderId.slice(0, 8)} status changed to ${status}`, 'info');
+    setReloadTrigger(prev => prev + 1);
+  };
+
+  const handleDeleteOrder = async (orderId: string) => {
+    if (!window.confirm("Are you sure you want to permanently delete this order? This cannot be undone.")) return;
+    await DB.deleteOrder(orderId);
+    addLog(`Order ${orderId.slice(0, 8)} deleted permanently`, 'warning');
     setReloadTrigger(prev => prev + 1);
   };
 
@@ -625,7 +634,8 @@ export default function AdminPanel() {
   const bestsellerProducts = bestsellerIds.map(id => products.find(p => p.id === id)).filter(Boolean) as Product[];
 
   const sidebarItems = [
-    { id: 'overview', label: 'Dashboard Overview', icon: BarChart3 },
+    { id: 'overview', label: 'Dashboard Overview', icon: LayoutDashboard },
+    { id: 'insights', label: 'Data & Insights', icon: BarChart3 },
     { id: 'orders', label: 'Client Orders', icon: ShoppingBag, count: orders.length, badge: pendingOrdersCount > 0 ? pendingOrdersCount : null },
     { id: 'products', label: 'Catalog Assets', icon: Package, count: products.length },
     { id: 'announcements', label: 'Marketing Banners', icon: Volume2, count: announcements.length },
@@ -633,7 +643,7 @@ export default function AdminPanel() {
     { id: 'coupons', label: 'Coupons', icon: Sparkles, count: coupons.length },
     { id: 'videos', label: 'Studio Videos', icon: Video },
     { id: 'settings', label: 'Store Settings', icon: Settings },
-    { id: 'homepage', label: 'Homepage Editor', icon: LayoutDashboard },
+    { id: 'homepage', label: 'Homepage Editor', icon: Edit2 },
   ] as const;
 
   const activeLogEntries = activityLog.slice(-50);
@@ -680,6 +690,60 @@ export default function AdminPanel() {
     return acc;
   }, {} as Record<string, number>);
   const categoryData = Object.entries(categoryCounts).map(([name, value]) => ({ name, Products: value }));
+
+  const downloadCSV = (period: 'this_month' | 'past_month' | 'custom') => {
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    const pastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+    const pastYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+
+    const filteredOrders = orders.filter(o => {
+      const orderDate = new Date(o.created_at);
+      if (period === 'this_month') {
+        return orderDate.getMonth() === currentMonth && orderDate.getFullYear() === currentYear;
+      } else if (period === 'past_month') {
+        return orderDate.getMonth() === pastMonth && orderDate.getFullYear() === pastYear;
+      } else if (period === 'custom') {
+        if (!csvStartDate || !csvEndDate) return false;
+        const start = new Date(csvStartDate);
+        const end = new Date(csvEndDate);
+        end.setHours(23, 59, 59, 999);
+        return orderDate >= start && orderDate <= end;
+      }
+      return false;
+    });
+
+    if (filteredOrders.length === 0) {
+      alert(`No orders found for the selected period.`);
+      return;
+    }
+
+    const headers = "Order ID,Date,Status,Total Price,User ID\n";
+    const rows = filteredOrders.map(o => `${o.id},${new Date(o.created_at).toLocaleDateString()},${o.status},${o.total_price},${o.user_id}`).join('\n');
+    const csvContent = "data:text/csv;charset=utf-8," + headers + rows;
+    
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `orders_${period}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const productPopularity = orders.flatMap(o => o.items).reduce((acc, item) => {
+    acc[item.product_name] = (acc[item.product_name] || 0) + item.quantity;
+    return acc;
+  }, {} as Record<string, number>);
+  const popularProductsData = Object.entries(productPopularity)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([name, quantity]) => ({ name, Sales: quantity }));
+
+  // Fulfillment Rate
+  const deliveredPaid = orders.filter(o => ['Delivered', 'Shipped', 'Production'].includes(o.status)).length;
+  const fulfillmentRate = orders.length > 0 ? Math.round((deliveredPaid / orders.length) * 100) : 0;
 
   return (
     <div className="bg-[#FAF8F4] min-h-screen flex antialiased">
@@ -1049,6 +1113,84 @@ export default function AdminPanel() {
                 </motion.div>
               )}
 
+              {activeTab === 'insights' && (
+                <motion.div key="insights" variants={tabVariants} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.3, ease: 'easeOut' }} className="space-y-6">
+                  {/* Action Bar */}
+                  <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 bg-white border border-neutral-200/80 rounded-xl p-5 shadow-sm">
+                    <div>
+                      <h2 className="text-lg font-bold font-heading text-neutral-900">Data & Insights</h2>
+                      <p className="text-xs text-neutral-500 font-mono mt-1">Export your store's performance data as CSV</p>
+                    </div>
+                    
+                    <div className="flex flex-wrap items-center gap-4 w-full xl:w-auto">
+                      {/* Custom Range Picker */}
+                      <div className="flex items-center gap-2 bg-neutral-50 p-2 rounded-lg border border-neutral-200">
+                        <input 
+                          type="date" 
+                          value={csvStartDate} 
+                          onChange={e => setCsvStartDate(e.target.value)} 
+                          className="text-xs font-mono px-2 py-1.5 rounded border border-neutral-200 focus:outline-none focus:border-gold"
+                        />
+                        <span className="text-xs text-neutral-400 font-mono">to</span>
+                        <input 
+                          type="date" 
+                          value={csvEndDate} 
+                          onChange={e => setCsvEndDate(e.target.value)} 
+                          className="text-xs font-mono px-2 py-1.5 rounded border border-neutral-200 focus:outline-none focus:border-gold"
+                        />
+                        <button 
+                          onClick={() => downloadCSV('custom')} 
+                          disabled={!csvStartDate || !csvEndDate}
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-neutral-800 hover:bg-neutral-900 disabled:opacity-50 disabled:cursor-not-allowed rounded transition-colors"
+                        >
+                          <Download size={12} /> Custom
+                        </button>
+                      </div>
+
+                      <div className="h-6 w-px bg-neutral-200 hidden xl:block"></div>
+
+                      {/* Quick Filters */}
+                      <div className="flex items-center gap-3">
+                        <button onClick={() => downloadCSV('past_month')} className="flex items-center gap-2 px-4 py-2 text-xs font-bold text-neutral-600 bg-neutral-100 hover:bg-neutral-200 rounded-lg transition-colors">
+                          <Download size={14} /> Past Month
+                        </button>
+                        <button onClick={() => downloadCSV('this_month')} className="flex items-center gap-2 px-4 py-2 text-xs font-bold text-black bg-gold hover:bg-gold-600 rounded-lg shadow-sm shadow-gold/20 transition-all">
+                          <Download size={14} /> This Month
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Fulfillment Rate KPI */}
+                  <div className="bg-white border border-neutral-200/80 rounded-xl p-6 shadow-sm flex items-center justify-between">
+                    <div>
+                      <h3 className="text-neutral-400 font-mono text-xs font-bold uppercase tracking-widest mb-1">Order Fulfillment Rate</h3>
+                      <p className="text-3xl font-bold text-neutral-900">{fulfillmentRate}%</p>
+                      <p className="text-xs text-neutral-500 mt-1">Percentage of orders successfully processed or delivered.</p>
+                    </div>
+                    <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center border border-emerald-100">
+                      <Check className="text-emerald-500" size={28} />
+                    </div>
+                  </div>
+
+                  {/* Most Popular Products Bar Chart */}
+                  <div className="bg-white border border-neutral-200/80 rounded-xl p-6 shadow-sm">
+                    <h3 className="text-neutral-900 font-bold text-sm tracking-wide mb-6">Most Popular Products (All Time)</h3>
+                    <div className="h-72">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={popularProductsData} layout="vertical" margin={{ top: 5, right: 30, left: 80, bottom: 5 }}>
+                          <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#e5e5e5" />
+                          <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#737373' }} allowDecimals={false} />
+                          <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#171717' }} dx={-10} />
+                          <RechartsTooltip cursor={{ fill: '#f5f5f5' }} contentStyle={{ borderRadius: '8px', border: '1px solid #e5e5e5' }} />
+                          <Bar dataKey="Sales" fill="#d4af37" radius={[0, 4, 4, 0]} barSize={24} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
               {activeTab === 'orders' && (
                 <motion.div key="orders" variants={tabVariants} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.3, ease: 'easeOut' }} className="space-y-5">
                   
@@ -1184,6 +1326,13 @@ export default function AdminPanel() {
                               >
                                 {ALL_ORDER_STATUSES.map(step => <option key={step} value={step}>{step}</option>)}
                               </select>
+                              <button
+                                onClick={() => handleDeleteOrder(order.id)}
+                                className="p-1.5 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 hover:border-red-300 transition-colors"
+                                title="Delete Order"
+                              >
+                                <Trash2 size={14} />
+                              </button>
                             </div>
                           </div>
 

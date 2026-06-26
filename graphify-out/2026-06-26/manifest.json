@@ -20,14 +20,14 @@
     "semantic_hash": "239f3ebf717465dc636818a1a619398d"
   },
   "src/app/about/page.tsx": {
-    "mtime": 1782311559.9162588,
-    "ast_hash": "ee73fb46504e0eb2e925bcfad73ab184",
-    "semantic_hash": "ee73fb46504e0eb2e925bcfad73ab184"
+    "mtime": 1782460227.263373,
+    "ast_hash": "7dc3b6f17e6ca5c282211555a9e1f915",
+    "semantic_hash": ""
   },
   "src/app/admin/page.tsx": {
-    "mtime": 1782405451.9144776,
-    "ast_hash": "47a9d3438a6beda8c0090fb9c6138715",
-    "semantic_hash": "47a9d3438a6beda8c0090fb9c6138715"
+    "mtime": 1782460225.2480574,
+    "ast_hash": "2d788b534a7bbec1406bcbdb1e731898",
+    "semantic_hash": ""
   },
   "src/app/cart/page.tsx": {
     "mtime": 1782290132.0461655,
@@ -35,14 +35,14 @@
     "semantic_hash": "931f411388daff928a1b656c592626c7"
   },
   "src/app/checkout/page.tsx": {
-    "mtime": 1782315566.1637268,
-    "ast_hash": "6bfc9b9ee41200ee3832f97bc6729273",
-    "semantic_hash": "6bfc9b9ee41200ee3832f97bc6729273"
+    "mtime": 1782460231.3059728,
+    "ast_hash": "584eff4272949ab51f09744115fdbb79",
+    "semantic_hash": ""
   },
   "src/app/contact/page.tsx": {
-    "mtime": 1782315564.1497848,
-    "ast_hash": "428cf91f0b9647cacd7cc523f83852d3",
-    "semantic_hash": "428cf91f0b9647cacd7cc523f83852d3"
+    "mtime": 1782460229.289101,
+    "ast_hash": "9238cec01f18a2351c6d778cc98fb08d",
+    "semantic_hash": ""
   },
   "src/app/dashboard/page.tsx": {
     "mtime": 1782290171.4788518,
@@ -50,14 +50,14 @@
     "semantic_hash": "5752905f13d808f7c812043f1cb6595e"
   },
   "src/app/layout.tsx": {
-    "mtime": 1782404861.634964,
-    "ast_hash": "4ddbf03c7dc91f94283c993117f7ea35",
-    "semantic_hash": "4ddbf03c7dc91f94283c993117f7ea35"
+    "mtime": 1782460285.1786582,
+    "ast_hash": "18c2de0448a4d92261cfbce6879e0e4c",
+    "semantic_hash": ""
   },
   "src/app/login/page.tsx": {
-    "mtime": 1782403576.9810414,
-    "ast_hash": "0e4b081b995b89cc57be92c457c245b8",
-    "semantic_hash": "0e4b081b995b89cc57be92c457c245b8"
+    "mtime": 1782460223.2250164,
+    "ast_hash": "df5159530494e5fc0165d9adc1b2034d",
+    "semantic_hash": ""
   },
   "src/app/order-success/page.tsx": {
     "mtime": 1782315560.1184077,
@@ -65,9 +65,9 @@
     "semantic_hash": "0eb5ee3e0a8defa64bec298309e345a1"
   },
   "src/app/page.tsx": {
-    "mtime": 1782311532.593704,
-    "ast_hash": "03b7abdfd6afbd7eab124b89885778ce",
-    "semantic_hash": "03b7abdfd6afbd7eab124b89885778ce"
+    "mtime": 1782460195.6694746,
+    "ast_hash": "0d83d885ec654beeb27a943bfe6aeb12",
+    "semantic_hash": ""
   },
   "src/app/shop/[id]/page.tsx": {
     "mtime": 1782315799.0708487,
@@ -85,9 +85,9 @@
     "semantic_hash": "ccbcb9714f127e5d8ac449f5666a20c1"
   },
   "src/components/layout/Footer.tsx": {
-    "mtime": 1782315558.0912623,
-    "ast_hash": "ce57184422e3abc29a388ff69767d31f",
-    "semantic_hash": "ce57184422e3abc29a388ff69767d31f"
+    "mtime": 1782460257.727782,
+    "ast_hash": "caa77a3f929db6c8d1079f44ef9554be",
+    "semantic_hash": ""
   },
   "src/components/layout/LayoutWrapper.tsx": {
     "mtime": 1782278047.9873376,
@@ -95,9 +95,9 @@
     "semantic_hash": "3ce0f8aa919ea46b4160c9195b5247c7"
   },
   "src/components/layout/Navbar.tsx": {
-    "mtime": 1782312807.160804,
-    "ast_hash": "32249ba9ee0a933cd3f853cc6cc4e32f",
-    "semantic_hash": "32249ba9ee0a933cd3f853cc6cc4e32f"
+    "mtime": 1782460255.7021437,
+    "ast_hash": "25f0ccbbb5458a6b6d4403c3a62a50ad",
+    "semantic_hash": ""
   },
   "src/lib/context/AuthContext.tsx": {
     "mtime": 1782316198.097215,
@@ -120,9 +120,9 @@
     "semantic_hash": "28fcd85e639be2f6e846ea132584a6f8"
   },
   "supabase/schema.sql": {
-    "mtime": 1782404707.795653,
-    "ast_hash": "de73b35ba238a9f862d07dc49d059fb6",
-    "semantic_hash": "de73b35ba238a9f862d07dc49d059fb6"
+    "mtime": 1782460189.6340218,
+    "ast_hash": "4d03e662e0db25147740eb2cd083f8a7",
+    "semantic_hash": ""
   },
   "supabase_auth_migration.sql": {
     "mtime": 1782316196.0890865,
@@ -185,9 +185,9 @@
     "semantic_hash": "41eb5d6675b49c07329de8b8b9dfc043"
   },
   "PROJECT_MEMORY.md": {
-    "mtime": 1782311710.7264762,
-    "ast_hash": "a4bf32a50672ae11cb74d350af1eff33",
-    "semantic_hash": "a4bf32a50672ae11cb74d350af1eff33"
+    "mtime": 1782460270.3725421,
+    "ast_hash": "f6e38dea0513099ff8f7c22c72a488f7",
+    "semantic_hash": ""
   },
   "README.md": {
     "mtime": 1781842472.1157236,

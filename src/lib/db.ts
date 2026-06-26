@@ -943,6 +943,30 @@ export class DB {
     }
   }
 
+  static async deleteOrder(orderId: string): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .delete()
+        .eq('id', orderId);
+      
+      if (error) {
+        console.error("Error deleting order from Supabase:", error);
+      } else if (typeof window !== 'undefined') {
+        try {
+          const localStr = localStorage.getItem('gs_orders');
+          if (localStr) {
+            let orders: Order[] = JSON.parse(localStr);
+            orders = orders.filter(o => o.id !== orderId);
+            localStorage.setItem('gs_orders', JSON.stringify(orders));
+          }
+        } catch (e) {}
+      }
+    } catch (e) {
+      console.error("Failed to delete order:", e);
+    }
+  }
+
   static compressImage(file: File, maxW = 800, maxH = 800): Promise<File> {
     if (typeof window === 'undefined') return Promise.resolve(file);
     return new Promise((resolve) => {
