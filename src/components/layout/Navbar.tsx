@@ -81,6 +81,7 @@ export const Navbar: React.FC = () => {
   const navLinks = [
     { label: 'Home', href: '/' },
     { label: 'Shop', href: '/shop' },
+    { label: 'Our Work', href: '/our-work' },
     { label: 'About', href: '/about' },
     { label: 'Contact', href: '/contact' },
   ];
@@ -111,9 +112,9 @@ export const Navbar: React.FC = () => {
 
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5 group">
-            <img src="/logo.png" alt="A Gift Shop Logo" className="h-[66px] w-[66px] rounded-full object-contain border border-gold/10 group-hover:scale-105 transition-transform" />
+            <img src="/logo.png" alt="A Gift Story Logo" className="h-[66px] w-[66px] rounded-full object-contain border border-gold/10 group-hover:scale-105 transition-transform" />
             <span className="font-heading text-lg font-bold tracking-[0.18em] uppercase text-black">
-              A Gift<span className="text-gold group-hover:text-gold-600 transition-colors"> Shop</span>
+              A Gift<span className="text-gold group-hover:text-gold-600 transition-colors"> Story</span>
             </span>
           </Link>
 
@@ -324,7 +325,7 @@ export const Navbar: React.FC = () => {
                         )}
                         <div className="flex items-center justify-between">
                           <div className="flex items-center border border-gray-200 rounded">
-                            <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="px-2.5 py-1 text-gray-500 hover:text-black text-xs font-semibold transition-colors">-</button>
+                            <button onClick={() => updateQuantity(item.id, Math.max(item.min_quantity || 1, item.quantity - 1))} className="px-2.5 py-1 text-gray-500 hover:text-black text-xs font-semibold transition-colors">-</button>
                             <span className="px-2.5 text-gray-800 text-xs font-semibold">{item.quantity}</span>
                             <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="px-2.5 py-1 text-gray-500 hover:text-black text-xs font-semibold transition-colors">+</button>
                           </div>

@@ -3,15 +3,16 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/context/AuthContext';
-import { DB, Product, Order, Announcement, PopupOffer, CATEGORIES, Collection } from '@/lib/db';
+import { DB, Product, Order, Announcement, PopupOffer, CATEGORIES, Collection, Coupon, StudioVideo } from '@/lib/db';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Plus, Trash2, Volume2, DollarSign, ShoppingBag, Boxes, 
   LogOut, Edit2, Search, Printer, Truck, X, Package, LayoutDashboard,
-  Settings, GripVertical, ArrowUp, ArrowDown, Check,
+  Settings, GripVertical, ArrowUp, ArrowDown, Check, Video,
   Terminal, Cpu, Clock, Database, Wifi, Activity, Minimize2,
-  RefreshCw, Copy, Sparkles, ChevronRight, Eye, AlertCircle
+  RefreshCw, Copy, Sparkles, ChevronRight, Eye, AlertCircle, Download, Star, BarChart3
 } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend } from 'recharts';
 
 // ─── Real-time system clock hook ───
 const useSystemClock = () => {
@@ -68,12 +69,15 @@ export default function AdminPanel() {
   const router = useRouter();
   const { user, logout } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<'orders' | 'products' | 'announcements' | 'popups' | 'homepage'>('orders');
+  const [activeTab, setActiveTab] = useState<'overview' | 'orders' | 'products' | 'announcements' | 'popups' | 'homepage' | 'coupons' | 'videos'>('overview');
+  
+  // Data State
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [bestsellerIds, setBestsellerIds] = useState<string[]>([]);
   const [collections, setCollections] = useState<Collection[]>([]);
+  const [studioVideos, setStudioVideos] = useState<StudioVideo[]>([]);
 
   // Search & Filter
   const [orderSearch, setOrderSearch] = useState('');
@@ -88,6 +92,8 @@ export default function AdminPanel() {
   const [editCategory, setEditCategory] = useState('');
   const [editDesc, setEditDesc] = useState('');
   const [editImg, setEditImg] = useState('');
+  const [editImages, setEditImages] = useState('');
+  const [editMinQty, setEditMinQty] = useState(1);
   const [editCustom, setEditCustom] = useState(true);
 
   // Tracking details update states
@@ -105,9 +111,14 @@ export default function AdminPanel() {
   const [booted, setBooted] = useState(false);
   const logEndRef = useRef<HTMLDivElement>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const addLog = useCallback((message: string, type: LogEntry['type'] = 'info') => {
     setActivityLog(prev => [...prev, { id: `log-${Date.now()}-${Math.random()}`, timestamp: new Date(), message, type }]);
+    if (type === 'success') {
+      setToastMessage(message);
+      setTimeout(() => setToastMessage(null), 3000);
+    }
   }, []);
 
   // Initial boot sequence
@@ -131,6 +142,9 @@ export default function AdminPanel() {
 
   const [carrierInput, setCarrierInput] = useState('');
   const [trackingNumInput, setTrackingNumInput] = useState('');
+  
+  const [newVideoUrl, setNewVideoUrl] = useState('');
+  const [newVideoThumb, setNewVideoThumb] = useState('');
 
   useEffect(() => {
     if (editingProduct) {
@@ -139,6 +153,8 @@ export default function AdminPanel() {
       setEditCategory(editingProduct.category);
       setEditDesc(editingProduct.description || '');
       setEditImg(editingProduct.image_url);
+      setEditImages(editingProduct.images?.join('|||') || '');
+      setEditMinQty(editingProduct.min_quantity || 1);
       setEditCustom(editingProduct.customizable);
     }
   }, [editingProduct]);
@@ -150,6 +166,8 @@ export default function AdminPanel() {
   const [customCategoryInput, setCustomCategoryInput] = useState('');
   const [prodDesc, setProdDesc] = useState('');
   const [prodImg, setProdImg] = useState('https://images.unsplash.com/photo-1549465220-1a8b9238cd48?q=80&w=400&auto=format&fit=crop');
+  const [prodImages, setProdImages] = useState('');
+  const [prodMinQty, setProdMinQty] = useState(1);
   const [prodCustom, setProdCustom] = useState(true);
   const [editCustomCategoryInput, setEditCustomCategoryInput] = useState('');
   const [isUploading, setIsUploading] = useState(false);
@@ -165,6 +183,11 @@ export default function AdminPanel() {
   const [popActive, setPopActive] = useState(true);
   const [popUploading, setPopUploading] = useState(false);
 
+  // Coupons state
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [couponCode, setCouponCode] = useState('');
+  const [couponPercent, setCouponPercent] = useState(10);
+
   const [reloadTrigger, setReloadTrigger] = useState(0);
 
   useEffect(() => {
@@ -174,13 +197,15 @@ export default function AdminPanel() {
     }
     const loadData = async () => {
       try {
-        const [orderData, prodData, annData, bestIds, collData, popData] = await Promise.all([
+        const [orderData, prodData, annData, bestIds, collData, popData, couponData, videoData] = await Promise.all([
           DB.getOrders(),
           DB.getProducts(),
           DB.getAnnouncements(),
           DB.getBestsellers(),
           DB.getCollections(),
           DB.getPopupOffers(),
+          DB.getCoupons(),
+          DB.getStudioVideos(),
         ]);
         setOrders(orderData);
         setProducts(prodData);
@@ -188,12 +213,18 @@ export default function AdminPanel() {
         setBestsellerIds(bestIds);
         setCollections(collData);
         setPopupOffers(popData);
+        setCoupons(couponData);
+        setStudioVideos(videoData);
       } catch (err) {
         console.error("Failed to load admin panel data:", err);
       }
     };
     loadData();
   }, [user, reloadTrigger, router]);
+  useEffect(() => {
+    setOrderCurrentPage(1);
+  }, [orderSearch, statusFilter]);
+
 
   if (!user || user.role !== 'admin') {
     return (
@@ -229,7 +260,17 @@ export default function AdminPanel() {
     if (!editingProduct || !editName || editPrice <= 0) return;
     const finalCategory = editCategory === 'NEW_CATEGORY_TRIGGER' ? editCustomCategoryInput.trim() : editCategory;
     if (!finalCategory) { alert("Please specify a category."); return; }
-    const updated: Product = { ...editingProduct, name: editName, price: editPrice, category: finalCategory, description: editDesc, image_url: editImg, customizable: editCustom };
+    const updated: Product = { 
+      ...editingProduct, 
+      name: editName, 
+      price: editPrice, 
+      category: finalCategory, 
+      description: editDesc, 
+      image_url: editImg, 
+      images: parseImagesString(editImages),
+      min_quantity: editMinQty,
+      customizable: editCustom 
+    };
     addLog(`Product "${updated.name}" details updated.`, 'success');
     await DB.saveProduct(updated);
     setEditingProduct(null);
@@ -255,8 +296,25 @@ export default function AdminPanel() {
       <tr style="border-bottom:1px solid #eee"><td style="padding:12px 0"><div style="font-weight:bold;font-size:14px;color:#111">${item.name}</div>${item.custom_text?`<div style="font-size:12px;color:#D4AF37;margin-top:4px;font-family:Georgia,serif;font-style:italic">Engraving: &quot;${item.custom_text}&quot;</div>`:''}${item.custom_font?`<div style="font-size:12px;color:#666">Font style: ${item.custom_font}</div>`:''}${item.custom_color?`<div style="font-size:12px;color:#666">HUE: ${item.custom_color}</div>`:''}</td><td style="padding:12px 0;text-align:center;color:#444">${item.quantity}</td><td style="padding:12px 0;text-align:right;color:#444">₹${item.price.toLocaleString('en-IN')}</td><td style="padding:12px 0;text-align:right;color:#444">₹${(item.price*item.quantity).toLocaleString('en-IN')}</td></tr>
     `).join('');
     
-    printWindow.document.write(`<html><head><title>Invoice - ${order.id.slice(0,8)}</title><style>body{font-family:'Poppins',system-ui,sans-serif;padding:50px;color:#111;background:#fff}.header{display:flex;justify-content:space-between;border-bottom:1px solid #D4AF37;padding-bottom:25px}.section{margin:30px 0}.grid{display:flex;justify-content:space-between}.col{flex:1}table{width:100%;border-collapse:collapse}th{text-align:left;border-bottom:2px solid #111;padding-bottom:10px;font-size:12px;text-transform:uppercase;color:#888;letter-spacing:1px}.total{text-align:right;font-size:20px;font-weight:bold;margin-top:30px;color:#D4AF37}</style></head><body><div class="header"><div><h1 style="margin:0;font-size:28px;letter-spacing:3px;color:#111;font-weight:700">A GIFT SHOP</h1><p style="margin:5px 0 0 0;font-size:12px;color:#999;letter-spacing:2px;text-transform:uppercase">Boutique Personalized Gifts</p></div><div style="text-align:right"><h3 style="margin:0;font-size:14px;color:#111;letter-spacing:1px;font-weight:600">OFFICIAL INVOICE</h3><p style="margin:5px 0 0 0;font-size:12px;color:#888">Date: ${new Date(order.created_at).toLocaleDateString()}</p><p style="margin:2px 0 0 0;font-size:12px;color:#888">Ref: #${order.id}</p></div></div><div class="section grid"><div class="col"><h4 style="margin:0 0 8px 0;font-size:11px;color:#999;text-transform:uppercase;letter-spacing:1px">Client Details</h4><p style="margin:0;font-size:14px;font-weight:bold;color:#111">${order.user_name}</p><p style="margin:3px 0 0 0;font-size:13px;color:#555">Email: ${order.user_email}</p><p style="margin:2px 0 0 0;font-size:13px;color:#555">Phone: ${order.user_phone}</p></div><div class="col" style="text-align:right"><h4 style="margin:0 0 8px 0;font-size:11px;color:#999;text-transform:uppercase;letter-spacing:1px">Shipping Destination</h4><p style="margin:0;font-size:13px;color:#555;line-height:1.5">${order.shipping_address}</p><p style="margin:8px 0 0 0;font-size:13px;color:#111"><strong>Payment:</strong> ${order.payment_method}</p></div></div><div class="section"><table><thead><tr><th>Personalized Articulation</th><th style="text-align:center">Qty</th><th style="text-align:right">Price</th><th style="text-align:right">Total</th></tr></thead><tbody>${itemsHtml}</tbody></table></div><div class="total">Grand Total: ₹${order.total_price.toLocaleString('en-IN')}</div><div style="margin-top:70px;text-align:center;font-size:12px;color:#aaa;border-top:1px solid #eee;padding-top:20px;letter-spacing:1px">Thank you for patronizing A Gift Shop.</div><script>window.onload=function(){window.print()}</script></body></html>`);
+    printWindow.document.write(`<html><head><title>Invoice - ${order.id.slice(0,8)}</title><style>body{font-family:'Poppins',system-ui,sans-serif;padding:50px;color:#111;background:#fff}.header{display:flex;justify-content:space-between;border-bottom:1px solid #D4AF37;padding-bottom:25px}.section{margin:30px 0}.grid{display:flex;justify-content:space-between}.col{flex:1}table{width:100%;border-collapse:collapse}th{text-align:left;border-bottom:2px solid #111;padding-bottom:10px;font-size:12px;text-transform:uppercase;color:#888;letter-spacing:1px}.total{text-align:right;font-size:20px;font-weight:bold;margin-top:30px;color:#D4AF37}</style></head><body><div class="header"><div><h1 style="margin:0;font-size:28px;letter-spacing:3px;color:#111;font-weight:700">A GIFT STORY</h1><p style="margin:5px 0 0 0;font-size:12px;color:#999;letter-spacing:2px;text-transform:uppercase">Boutique Personalized Gifts</p></div><div style="text-align:right"><h3 style="margin:0;font-size:14px;color:#111;letter-spacing:1px;font-weight:600">OFFICIAL INVOICE</h3><p style="margin:5px 0 0 0;font-size:12px;color:#888">Date: ${new Date(order.created_at).toLocaleDateString()}</p><p style="margin:2px 0 0 0;font-size:12px;color:#888">Ref: #${order.id}</p></div></div><div class="section grid"><div class="col"><h4 style="margin:0 0 8px 0;font-size:11px;color:#999;text-transform:uppercase;letter-spacing:1px">Client Details</h4><p style="margin:0;font-size:14px;font-weight:bold;color:#111">${order.user_name}</p><p style="margin:3px 0 0 0;font-size:13px;color:#555">Email: ${order.user_email}</p><p style="margin:2px 0 0 0;font-size:13px;color:#555">Phone: ${order.user_phone}</p></div><div class="col" style="text-align:right"><h4 style="margin:0 0 8px 0;font-size:11px;color:#999;text-transform:uppercase;letter-spacing:1px">Shipping Destination</h4><p style="margin:0;font-size:13px;color:#555;line-height:1.5">${order.shipping_address}</p><p style="margin:8px 0 0 0;font-size:13px;color:#111"><strong>Payment:</strong> ${order.payment_method}</p></div></div><div class="section"><table><thead><tr><th>Personalized Articulation</th><th style="text-align:center">Qty</th><th style="text-align:right">Price</th><th style="text-align:right">Total</th></tr></thead><tbody>${itemsHtml}</tbody></table></div><div class="total">Grand Total: ₹${order.total_price.toLocaleString('en-IN')}</div><div style="margin-top:70px;text-align:center;font-size:12px;color:#aaa;border-top:1px solid #eee;padding-top:20px;letter-spacing:1px">Thank you for patronizing A Gift Story.</div><script>window.onload=function(){window.print()}</script></body></html>`);
     printWindow.document.close();
+  };
+
+  const parseImagesString = (input: string): string[] => {
+    if (!input) return [];
+    if (input.includes('|||')) return input.split('|||').map(s => s.trim()).filter(Boolean);
+    const parts = input.split(',');
+    const result: string[] = [];
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i].trim();
+      if (part.startsWith('data:image/') && i + 1 < parts.length) {
+        result.push(`${part},${parts[i + 1].trim()}`);
+        i++;
+      } else if (part) {
+        result.push(part);
+      }
+    }
+    return result;
   };
 
   const handleCreateProduct = async (e: React.FormEvent) => {
@@ -264,11 +322,22 @@ export default function AdminPanel() {
     if (!prodName || prodPrice <= 0) return;
     const finalCategory = prodCategory === 'NEW_CATEGORY_TRIGGER' ? customCategoryInput.trim() : prodCategory;
     if (!finalCategory) { alert("Please specify a category."); return; }
-    const newProduct: Product = { id: generateUUID(), name: prodName, price: prodPrice, description: prodDesc, category: finalCategory, stock: 100, image_url: prodImg, customizable: prodCustom };
+    const newProduct: Product = { 
+      id: generateUUID(), 
+      name: prodName, 
+      price: prodPrice, 
+      description: prodDesc, 
+      category: finalCategory, 
+      stock: 100, 
+      image_url: prodImg, 
+      images: parseImagesString(prodImages),
+      min_quantity: prodMinQty,
+      customizable: prodCustom 
+    };
     addLog(`Product "${newProduct.name}" cataloged.`, 'success');
     await DB.saveProduct(newProduct);
     setShowAddProduct(false);
-    setProdName(''); setProdPrice(999); setProdDesc(''); setCustomCategoryInput('');
+    setProdName(''); setProdPrice(999); setProdDesc(''); setCustomCategoryInput(''); setProdImages(''); setProdMinQty(1);
     setReloadTrigger(prev => prev + 1);
   };
 
@@ -285,6 +354,30 @@ export default function AdminPanel() {
     if (!file) return;
     try { setIsUploading(true); const url = await DB.uploadProductImage(file); setEditImg(url); }
     catch (err) { console.error("Upload error:", err); alert("Failed to upload image."); }
+    finally { setIsUploading(false); }
+  };
+
+  const handleProdAdditionalImagesUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    try { 
+      setIsUploading(true); 
+      const uploadedUrls = await Promise.all(files.map(file => DB.uploadProductImage(file))); 
+      setProdImages(prev => prev ? `${prev}|||${uploadedUrls.join('|||')}` : uploadedUrls.join('|||'));
+    }
+    catch (err) { console.error("Upload error:", err); alert("Failed to upload additional images."); }
+    finally { setIsUploading(false); }
+  };
+
+  const handleEditAdditionalImagesUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    try { 
+      setIsUploading(true); 
+      const uploadedUrls = await Promise.all(files.map(file => DB.uploadProductImage(file))); 
+      setEditImages(prev => prev ? `${prev}|||${uploadedUrls.join('|||')}` : uploadedUrls.join('|||'));
+    }
+    catch (err) { console.error("Upload error:", err); alert("Failed to upload additional images."); }
     finally { setIsUploading(false); }
   };
 
@@ -340,6 +433,31 @@ export default function AdminPanel() {
     addLog(`Popup offer "${offer.title}" ${updated.active ? 'activated' : 'deactivated'}.`, 'info');
     await DB.savePopupOffer(updated);
     setReloadTrigger(prev => prev + 1);
+  };
+
+  const handleCreateCoupon = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!couponCode || couponPercent <= 0) return;
+    const newCoupon: Coupon = {
+      id: generateUUID(),
+      code: couponCode.toUpperCase().trim(),
+      discount_percent: couponPercent,
+      active: true,
+      created_at: new Date().toISOString()
+    };
+    await DB.saveCoupon(newCoupon);
+    addLog(`Coupon "${newCoupon.code}" created.`, 'success');
+    setCouponCode('');
+    setCouponPercent(10);
+    setReloadTrigger(prev => prev + 1);
+  };
+
+  const handleDeleteCoupon = async (id: string) => {
+    if (confirm("Delete this coupon?")) {
+      await DB.deleteCoupon(id);
+      addLog('Coupon deleted.', 'warning');
+      setReloadTrigger(prev => prev + 1);
+    }
   };
 
   const handlePopupImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -429,12 +547,46 @@ export default function AdminPanel() {
 
   const totalRevenue = orders.reduce((sum, o) => sum + o.total_price, 0);
   const activeOrders = orders.filter(o => o.status !== 'Delivered').length;
+  const pendingOrdersCount = orders.filter(o => o.status === 'Pending').length;
+
+  const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
+  const monthOrders = orders.filter(o => {
+    const d = new Date(o.created_at);
+    return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+  });
+  const monthRevenue = monthOrders.reduce((sum, o) => sum + o.total_price, 0);
+
+  const handleDownloadCSV = () => {
+    if (monthOrders.length === 0) {
+      addLog('No orders this month to download.', 'warning');
+      return;
+    }
+    const headers = ['Order ID', 'Date', 'Customer Name', 'Email', 'Phone', 'Total Price', 'Status', 'Payment Method'];
+    const rows = monthOrders.map(o => [
+      o.id,
+      new Date(o.created_at).toLocaleDateString(),
+      (o.user_name || '').replace(/,/g, ''),
+      o.user_email,
+      (o.user_phone || '').replace(/,/g, ''),
+      o.total_price,
+      o.status,
+      o.payment_method
+    ]);
+    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `orders_${currentMonth + 1}_${currentYear}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    addLog('Month orders CSV generated.', 'success');
+  };
+
   const handleLogoutClick = () => { addLog('Session securely terminated.', 'system'); logout(); router.push('/login'); };
   const dynamicCategories = Array.from(new Set([...CATEGORIES, ...products.map(p => p.category)]));
-
-  useEffect(() => {
-    setOrderCurrentPage(1);
-  }, [orderSearch, statusFilter]);
 
   const filteredOrders = orders.filter(order => {
     const matchesSearch = order.user_name.toLowerCase().includes(orderSearch.toLowerCase()) || order.user_email.toLowerCase().includes(orderSearch.toLowerCase()) || (order.user_phone && order.user_phone.includes(orderSearch)) || order.id.toLowerCase().includes(orderSearch.toLowerCase());
@@ -455,10 +607,13 @@ export default function AdminPanel() {
   const bestsellerProducts = bestsellerIds.map(id => products.find(p => p.id === id)).filter(Boolean) as Product[];
 
   const sidebarItems = [
-    { id: 'orders', label: 'Client Orders', icon: ShoppingBag, count: orders.length },
+    { id: 'overview', label: 'Dashboard Overview', icon: BarChart3 },
+    { id: 'orders', label: 'Client Orders', icon: ShoppingBag, count: orders.length, badge: pendingOrdersCount > 0 ? pendingOrdersCount : null },
     { id: 'products', label: 'Catalog Assets', icon: Package, count: products.length },
     { id: 'announcements', label: 'Marketing Banners', icon: Volume2, count: announcements.length },
     { id: 'popups', label: 'Popup Offers', icon: Eye, count: popupOffers.length },
+    { id: 'coupons', label: 'Coupons', icon: Sparkles, count: coupons.length },
+    { id: 'videos', label: 'Studio Videos', icon: Video },
     { id: 'homepage', label: 'Homepage Editor', icon: LayoutDashboard },
   ] as const;
 
@@ -478,6 +633,35 @@ export default function AdminPanel() {
     exit: { opacity: 0, y: -16 },
   };
 
+  // --- Dashboard Analytics Data Computations ---
+  const revenueTotal = orders.reduce((sum, o) => sum + o.total_price, 0);
+  const activeUsersTotal = new Set(orders.map(o => o.user_id)).size;
+
+  const statusCountMap = orders.reduce((acc, o) => {
+    acc[o.status] = (acc[o.status] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+  const pieData = Object.entries(statusCountMap).map(([name, value]) => ({ name, value }));
+  const PIE_COLORS = ['#fbbf24', '#3b82f6', '#8b5cf6', '#10b981', '#ef4444'];
+
+  const trendData = [...Array(7)].map((_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    const dateStr = d.toISOString().split('T')[0];
+    const dayOrders = orders.filter(o => o.created_at.startsWith(dateStr));
+    return { 
+      name: d.toLocaleDateString('en-US', { weekday: 'short' }), 
+      Revenue: dayOrders.reduce((sum, o) => sum + o.total_price, 0),
+      Orders: dayOrders.length
+    };
+  });
+
+  const categoryCounts = products.reduce((acc, p) => {
+    acc[p.category] = (acc[p.category] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+  const categoryData = Object.entries(categoryCounts).map(([name, value]) => ({ name, Products: value }));
+
   return (
     <div className="bg-[#FAF8F4] min-h-screen flex antialiased">
       {/* Boot splash overlay */}
@@ -485,11 +669,11 @@ export default function AdminPanel() {
         <div className="fixed inset-0 z-[100] bg-neutral-950 flex items-center justify-center">
           <div className="text-center space-y-6">
             <div className="w-16 h-16 mx-auto rounded-full bg-white border border-gold/20 flex items-center justify-center shadow-2xl relative overflow-hidden">
-              <img src="/logo.png" alt="A Gift Shop Logo" className="w-full h-full object-contain" />
+              <img src="/logo.png" alt="A Gift Story Logo" className="w-full h-full object-contain" />
             </div>
             <div className="space-y-2">
               <div className="admin-gold-bar w-16 mx-auto mb-3" />
-              <p className="text-white font-heading font-bold text-xl uppercase tracking-[0.3em]">A Gift Shop</p>
+              <p className="text-white font-heading font-bold text-xl uppercase tracking-[0.3em]">A Gift Story</p>
               <p className="text-gold text-xs font-mono tracking-widest uppercase">Signature Dashboard v3.0</p>
             </div>
             <div className="w-60 h-[2px] bg-neutral-800 rounded-full mx-auto overflow-hidden">
@@ -508,10 +692,10 @@ export default function AdminPanel() {
         {/* Brand header */}
         <div className="p-6 pt-7 border-b border-neutral-900">
           <div className="flex items-center gap-3.5">
-            <img src="/logo.png" alt="A Gift Shop Logo" className="w-14 h-14 rounded-full object-contain border border-gold/10" />
+            <img src="/logo.png" alt="A Gift Story Logo" className="w-14 h-14 rounded-full object-contain border border-gold/10" />
             <div>
               <h1 className="text-white text-base font-heading font-bold uppercase tracking-[0.18em] leading-tight">
-                A Gift Shop
+                A Gift Story
               </h1>
               <p className="text-xs text-gold/60 font-mono tracking-widest uppercase mt-0.5">Studio Admin</p>
             </div>
@@ -572,6 +756,11 @@ export default function AdminPanel() {
                       ? 'bg-gold/20 text-gold font-bold' 
                       : 'bg-neutral-900 text-neutral-500 group-hover:bg-neutral-800'
                   }`}>{item.count}</span>
+                )}
+                {'badge' in item && item.badge && (
+                  <span className="relative z-10 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-lg shadow-red-500/20 ml-1 animate-pulse">
+                    {item.badge}
+                  </span>
                 )}
               </button>
             );
@@ -643,6 +832,14 @@ export default function AdminPanel() {
             >
               <RefreshCw size={13} />
             </button>
+            <button 
+              onClick={handleDownloadCSV}
+              className="p-2 rounded-full border border-neutral-200/70 hover:border-gold/30 text-neutral-400 hover:text-gold bg-white hover:shadow-sm active:scale-95 transition-all duration-200 flex items-center gap-1.5"
+              title="Download Month Orders CSV"
+            >
+              <Download size={13} />
+              <span className="text-[10px] font-mono font-bold uppercase tracking-widest hidden sm:inline">Export CSV</span>
+            </button>
           </div>
 
           <div className="flex items-center gap-3.5">
@@ -667,13 +864,15 @@ export default function AdminPanel() {
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
-                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5"
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-5"
               >
                 {[
                   { label: 'Bespoke Revenue', value: `₹${totalRevenue.toLocaleString('en-IN')}`, icon: DollarSign, color: 'text-gold', bg: 'bg-gold/5 border-gold/20', bar: totalRevenue > 0 ? 88 : 0 },
-                  { label: 'Studio Pipeline', value: `${activeOrders} Active`, icon: ShoppingBag, color: 'text-emerald-600', bg: 'bg-emerald-500/5 border-emerald-500/15', bar: orders.length > 0 ? Math.round((activeOrders / orders.length) * 100) : 0 },
-                  { label: 'Design Catalog', value: `${products.length} Styles`, icon: Boxes, color: 'text-blue-600', bg: 'bg-blue-500/5 border-blue-500/15', bar: Math.min(products.length * 10, 100) },
-                  { label: 'Active Campaigns', value: `${announcements.length} Banners`, icon: Volume2, color: 'text-purple-600', bg: 'bg-purple-500/5 border-purple-500/15', bar: announcements.length * 50 },
+                  { label: 'Month Revenue', value: `₹${monthRevenue.toLocaleString('en-IN')}`, icon: DollarSign, color: 'text-emerald-600', bg: 'bg-emerald-500/5 border-emerald-500/15', bar: monthRevenue > 0 ? 80 : 0 },
+                  { label: 'Studio Pipeline', value: `${activeOrders} Active`, icon: ShoppingBag, color: 'text-blue-600', bg: 'bg-blue-500/5 border-blue-500/15', bar: orders.length > 0 ? Math.round((activeOrders / orders.length) * 100) : 0 },
+                  { label: 'Month Orders', value: `${monthOrders.length} Orders`, icon: Package, color: 'text-indigo-600', bg: 'bg-indigo-500/5 border-indigo-500/15', bar: monthOrders.length > 0 ? 75 : 0 },
+                  { label: 'Design Catalog', value: `${products.length} Styles`, icon: Boxes, color: 'text-purple-600', bg: 'bg-purple-500/5 border-purple-500/15', bar: Math.min(products.length * 10, 100) },
+                  { label: 'Active Coupons', value: `${coupons.filter(c=>c.active).length} Codes`, icon: Sparkles, color: 'text-amber-600', bg: 'bg-amber-500/5 border-amber-500/15', bar: coupons.length * 20 },
                 ].map((stat, idx) => (
                   <motion.div 
                     key={stat.label}
@@ -728,6 +927,109 @@ export default function AdminPanel() {
 
             {/* Main Tabs Container */}
             <AnimatePresence mode="wait">
+              {activeTab === 'overview' && (
+                <motion.div key="overview" variants={tabVariants} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.3, ease: 'easeOut' }} className="space-y-6">
+                  {/* KPI Cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="bg-white border border-neutral-200/80 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="text-neutral-400 font-mono text-xs font-bold uppercase tracking-widest mb-2 flex items-center justify-between">
+                        Total Revenue <DollarSign size={14} className="text-gold" />
+                      </div>
+                      <div className="text-2xl font-bold text-neutral-900">₹{revenueTotal.toLocaleString('en-IN')}</div>
+                    </div>
+                    <div className="bg-white border border-neutral-200/80 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="text-neutral-400 font-mono text-xs font-bold uppercase tracking-widest mb-2 flex items-center justify-between">
+                        Total Orders <ShoppingBag size={14} className="text-gold" />
+                      </div>
+                      <div className="text-2xl font-bold text-neutral-900">{orders.length}</div>
+                    </div>
+                    <div className="bg-white border border-neutral-200/80 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="text-neutral-400 font-mono text-xs font-bold uppercase tracking-widest mb-2 flex items-center justify-between">
+                        Active Users <Activity size={14} className="text-gold" />
+                      </div>
+                      <div className="text-2xl font-bold text-neutral-900">{activeUsersTotal}</div>
+                    </div>
+                    <div className="bg-white border border-neutral-200/80 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="text-neutral-400 font-mono text-xs font-bold uppercase tracking-widest mb-2 flex items-center justify-between">
+                        Catalog Items <Package size={14} className="text-gold" />
+                      </div>
+                      <div className="text-2xl font-bold text-neutral-900">{products.length}</div>
+                    </div>
+                  </div>
+
+                  {/* Charts Row */}
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Revenue Area Chart */}
+                    <div className="lg:col-span-2 bg-white border border-neutral-200/80 rounded-xl p-6 shadow-sm">
+                      <h3 className="text-neutral-900 font-bold text-sm tracking-wide mb-6">Revenue Trend (Last 7 Days)</h3>
+                      <div className="h-72">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={trendData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                            <defs>
+                              <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#d4af37" stopOpacity={0.3}/>
+                                <stop offset="95%" stopColor="#d4af37" stopOpacity={0}/>
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e5e5" />
+                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#737373' }} dy={10} />
+                            <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#737373' }} tickFormatter={(val) => `₹${val}`} dx={-10} width={60} />
+                            <RechartsTooltip contentStyle={{ borderRadius: '8px', border: '1px solid #e5e5e5', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)' }} itemStyle={{ color: '#171717', fontWeight: 'bold' }} />
+                            <Area type="monotone" dataKey="Revenue" stroke="#d4af37" strokeWidth={3} fillOpacity={1} fill="url(#colorRev)" />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+
+                    {/* Order Status Pie Chart */}
+                    <div className="bg-white border border-neutral-200/80 rounded-xl p-6 shadow-sm">
+                      <h3 className="text-neutral-900 font-bold text-sm tracking-wide mb-6">Order Status</h3>
+                      <div className="h-72">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={pieData}
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={60}
+                              outerRadius={80}
+                              paddingAngle={5}
+                              dataKey="value"
+                              isAnimationActive={true}
+                              animationBegin={150}
+                              animationDuration={1200}
+                              animationEasing="ease-out"
+                            >
+                              {pieData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                              ))}
+                            </Pie>
+                            <RechartsTooltip contentStyle={{ borderRadius: '8px', border: '1px solid #e5e5e5' }} />
+                            <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px', color: '#737373' }} />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Category Bar Chart */}
+                  <div className="bg-white border border-neutral-200/80 rounded-xl p-6 shadow-sm">
+                    <h3 className="text-neutral-900 font-bold text-sm tracking-wide mb-6">Products by Category</h3>
+                    <div className="h-72">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={categoryData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e5e5" />
+                          <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#737373' }} dy={10} />
+                          <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#737373' }} dx={-10} allowDecimals={false} width={40} />
+                          <RechartsTooltip cursor={{ fill: '#f5f5f5' }} contentStyle={{ borderRadius: '8px', border: '1px solid #e5e5e5' }} />
+                          <Bar dataKey="Products" fill="#171717" radius={[4, 4, 0, 0]} maxBarSize={50} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
               {activeTab === 'orders' && (
                 <motion.div key="orders" variants={tabVariants} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.3, ease: 'easeOut' }} className="space-y-5">
                   
@@ -783,12 +1085,23 @@ export default function AdminPanel() {
                     <>
                     {/* Orders list */}
                     <div className="space-y-5">
-                      {paginatedOrders.map((order) => (
+                      {paginatedOrders.map((order) => {
+                        const statusColors: Record<string, string> = {
+                          Pending: 'border-l-[4px] border-l-red-500 bg-red-50/30',
+                          Confirmed: 'border-l-[4px] border-l-blue-500',
+                          Designing: 'border-l-[4px] border-l-purple-500',
+                          Production: 'border-l-[4px] border-l-amber-500',
+                          Shipped: 'border-l-[4px] border-l-indigo-500',
+                          Delivered: 'border-l-[4px] border-l-emerald-500',
+                        };
+                        const statusHighlight = statusColors[order.status] || 'border-l-[4px] border-l-neutral-300';
+                        
+                        return (
                         <motion.div 
                           key={order.id} 
                           initial={{ opacity: 0, y: 12 }}
                           animate={{ opacity: 1, y: 0 }}
-                          className="bg-white border border-neutral-200/80 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300"
+                          className={`bg-white border border-neutral-200/80 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 ${statusHighlight}`}
                         >
                           {/* Order Header */}
                           <div className="bg-neutral-50/60 px-6 py-4.5 border-b border-neutral-200/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -1032,7 +1345,8 @@ export default function AdminPanel() {
                             </div>
                           )}
                         </motion.div>
-                      ))}
+                        );
+                      })}
                     </div>
                     
                     {/* Pagination Controls */}
@@ -1128,6 +1442,23 @@ export default function AdminPanel() {
                               <input type="file" accept="image/*" disabled={isUploading} onChange={handleProdImageUpload} className="hidden" />
                             </label>
                           </div>
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-mono font-bold text-neutral-400 uppercase tracking-widest">Additional Images</label>
+                          <div className="flex gap-2">
+                            <input type="text" value={prodImages} onChange={(e) => setProdImages(e.target.value)} placeholder="Comma separated URLs..." className="flex-1 bg-neutral-50 border border-neutral-200 rounded-lg px-3.5 py-2 text-sm text-neutral-700 focus:outline-none focus:border-gold font-mono placeholder-neutral-400 shadow-sm" />
+                            <label className="px-3.5 py-2 rounded-lg border border-neutral-200 bg-white text-neutral-500 hover:text-neutral-800 text-xs font-mono font-bold cursor-pointer hover:border-neutral-300 transition-all flex items-center shadow-sm select-none shrink-0">
+                              <span>{isUploading ? 'Uploading...' : 'Browse photos'}</span>
+                              <input type="file" accept="image/*" multiple disabled={isUploading} onChange={handleProdAdditionalImagesUpload} className="hidden" />
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-mono font-bold text-neutral-400 uppercase tracking-widest">Min Quantity</label>
+                          <input type="number" min="1" value={prodMinQty} onChange={(e) => setProdMinQty(Number(e.target.value))} className="w-full bg-neutral-50 border border-neutral-200 rounded-lg px-3.5 py-2 text-sm text-neutral-700 focus:outline-none focus:border-gold font-mono shadow-sm" />
                         </div>
                         <div className="flex items-center gap-3 pt-4.5">
                           <input type="checkbox" id="prodCustom" checked={prodCustom} onChange={(e) => setProdCustom(e.target.checked)} className="rounded bg-white border-neutral-300 text-gold focus:ring-gold w-4 h-4 cursor-pointer" />
@@ -1226,6 +1557,13 @@ export default function AdminPanel() {
                                 </td>
                                 <td className="px-6 py-3.5 text-right pr-7">
                                   <div className="flex justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                    <button 
+                                      onClick={() => toggleBestseller(p.id)} 
+                                      className={`p-1.5 rounded-lg border transition-all ${bestsellerIds.includes(p.id) ? 'border-gold/50 bg-gold/10 text-gold' : 'border-neutral-200 hover:border-gold/30 hover:bg-gold/5 text-neutral-400 hover:text-gold'}`} 
+                                      title={bestsellerIds.includes(p.id) ? "Remove from Bestsellers" : "Add to Bestsellers"}
+                                    >
+                                      <Star size={14} className={bestsellerIds.includes(p.id) ? "fill-gold" : ""} />
+                                    </button>
                                     <button 
                                       onClick={() => setEditingProduct(p)} 
                                       className="p-1.5 rounded-lg border border-neutral-200 hover:border-gold/30 hover:bg-gold/5 text-neutral-400 hover:text-gold transition-all" 
@@ -1424,6 +1762,147 @@ export default function AdminPanel() {
                     )}
                   </div>
                 </motion.div>
+              )}
+
+              {activeTab === 'coupons' && (
+                <motion.div key="coupons" variants={tabVariants} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.3, ease: 'easeOut' }} className="grid grid-cols-1 md:grid-cols-12 gap-8">
+                  {/* Coupon Creation Column */}
+                  <div className="col-span-12 md:col-span-5 bg-white border border-neutral-200/80 rounded-xl p-6 shadow-sm h-max">
+                    <h3 className="text-sm font-mono font-bold text-neutral-400 uppercase tracking-widest mb-6">Create Coupon</h3>
+                    <form onSubmit={handleCreateCoupon} className="space-y-5">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-mono font-bold text-neutral-400 uppercase tracking-widest">Coupon Code *</label>
+                        <input type="text" required value={couponCode} onChange={(e) => setCouponCode(e.target.value)} placeholder="e.g. SUMMER20" className="w-full bg-neutral-50 border border-neutral-200 rounded-lg px-3.5 py-2 text-sm text-neutral-700 focus:outline-none focus:border-gold font-mono uppercase placeholder-neutral-400 shadow-sm" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-mono font-bold text-neutral-400 uppercase tracking-widest">Discount Percentage *</label>
+                        <input type="number" min="1" max="100" required value={couponPercent} onChange={(e) => setCouponPercent(parseInt(e.target.value) || 0)} className="w-full bg-neutral-50 border border-neutral-200 rounded-lg px-3.5 py-2 text-sm text-neutral-700 focus:outline-none focus:border-gold font-mono placeholder-neutral-400 shadow-sm" />
+                      </div>
+                      <button type="submit" className="w-full py-3 rounded-lg bg-black text-white hover:bg-gold hover:text-black text-xs font-mono font-bold transition-all duration-300 shadow-lg active:scale-98 mt-2">
+                        Create Coupon
+                      </button>
+                    </form>
+                  </div>
+                  
+                  {/* Coupon list column */}
+                  <div className="col-span-12 md:col-span-7 space-y-4">
+                    <h3 className="text-sm font-mono font-bold text-neutral-400 uppercase tracking-widest">Active Coupons ({coupons.length})</h3>
+                    {coupons.length === 0 ? (
+                      <div className="bg-white border border-neutral-200/80 rounded-xl p-20 text-center shadow-sm">
+                        <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-neutral-50 border border-neutral-200 flex items-center justify-center shadow-inner">
+                          <Sparkles size={24} className="text-neutral-300" />
+                        </div>
+                        <p className="text-neutral-400 text-sm font-mono">No active coupons available.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {coupons.map((coupon) => (
+                          <div key={coupon.id} className="bg-white border border-neutral-200/80 rounded-xl p-4 flex items-center justify-between shadow-sm">
+                            <div>
+                              <p className="text-sm font-bold text-neutral-900 tracking-wide">{coupon.code}</p>
+                              <p className="text-xs font-mono text-neutral-500 mt-1">{coupon.discount_percent}% Off</p>
+                            </div>
+                            <button
+                              onClick={() => handleDeleteCoupon(coupon.id)}
+                              className="p-2 rounded-lg text-neutral-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                              title="Delete Coupon"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+
+              {activeTab === 'videos' && (
+                <div className="space-y-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <h2 className="text-xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
+                        <Video size={24} className="text-gold" />
+                        Studio Videos
+                      </h2>
+                      <p className="text-sm text-gray-500 mt-1">Manage YouTube/Instagram video links displayed on the "Our Work" page.</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-6">
+                    <div className="flex flex-col gap-3">
+                      <div className="flex gap-3">
+                        <input 
+                          type="url" 
+                          value={newVideoUrl}
+                          onChange={e => setNewVideoUrl(e.target.value)}
+                          placeholder="Video URL (e.g., https://www.youtube.com/watch?v=... or Instagram link)" 
+                          className="input text-sm flex-1"
+                        />
+                        <button 
+                          onClick={async () => {
+                            if (!newVideoUrl) return;
+                            const newVideo: StudioVideo = { url: newVideoUrl };
+                            if (newVideoThumb.trim()) {
+                              newVideo.thumbnail = newVideoThumb.trim();
+                            }
+                            const updated = [...studioVideos, newVideo];
+                            setStudioVideos(updated);
+                            setNewVideoUrl('');
+                            setNewVideoThumb('');
+                            await DB.setStudioVideos(updated);
+                            addLog('Added new studio video link', 'success');
+                          }}
+                          className="btn btn-gold whitespace-nowrap"
+                        >
+                          <Plus size={16} /> Add Video
+                        </button>
+                      </div>
+                      <input 
+                        type="url" 
+                        value={newVideoThumb}
+                        onChange={e => setNewVideoThumb(e.target.value)}
+                        placeholder="Optional Thumbnail Image URL (for Instagram videos)" 
+                        className="input text-sm"
+                      />
+                    </div>
+
+                    <div className="space-y-3">
+                      {studioVideos.length === 0 ? (
+                        <div className="text-center py-10 bg-gray-50 rounded-lg border border-dashed border-gray-200">
+                          <Video size={32} className="mx-auto text-gray-300 mb-2" />
+                          <p className="text-sm text-gray-500">No videos added yet. Paste a URL above to add one.</p>
+                        </div>
+                      ) : (
+                        studioVideos.map((video, idx) => (
+                          <div key={idx} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-100">
+                            <div className="flex items-center gap-4 min-w-0">
+                              {video.thumbnail ? (
+                                <img src={video.thumbnail} alt="Thumbnail" className="w-16 h-10 object-cover rounded bg-gray-200 shrink-0" />
+                              ) : (
+                                <div className="w-16 h-10 rounded bg-gray-100 flex items-center justify-center shrink-0">
+                                  <Video size={16} className="text-gray-400" />
+                                </div>
+                              )}
+                              <div className="truncate text-sm font-medium text-gray-700">{video.url}</div>
+                            </div>
+                            <button 
+                              onClick={async () => {
+                                const updated = studioVideos.filter((_, i) => i !== idx);
+                                setStudioVideos(updated);
+                                await DB.setStudioVideos(updated);
+                                addLog('Removed studio video', 'system');
+                              }}
+                              className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors ml-4 shrink-0"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
               )}
 
               {activeTab === 'homepage' && (
@@ -1658,6 +2137,23 @@ export default function AdminPanel() {
                     </label>
                   </div>
                 </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono font-bold text-neutral-400 uppercase tracking-widest">Additional Images</label>
+                  <div className="flex gap-2">
+                    <input type="text" value={editImages} onChange={(e) => setEditImages(e.target.value)} placeholder="Comma separated URLs..." className="flex-1 bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2 text-sm text-neutral-700 focus:outline-none focus:border-gold font-mono placeholder-neutral-400 shadow-sm" />
+                    <label className="px-3 py-2 rounded-lg border border-neutral-200 bg-white text-neutral-500 hover:text-neutral-800 text-xs font-mono font-bold cursor-pointer hover:border-neutral-300 transition-all flex items-center shadow-sm select-none shrink-0">
+                      <span>{isUploading ? 'Uploading...' : 'Browse photos'}</span>
+                      <input type="file" accept="image/*" multiple disabled={isUploading} onChange={handleEditAdditionalImagesUpload} className="hidden" />
+                    </label>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono font-bold text-neutral-400 uppercase tracking-widest">Min Quantity</label>
+                  <input type="number" min="1" value={editMinQty} onChange={(e) => setEditMinQty(Number(e.target.value))} className="w-full bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2 text-sm text-neutral-700 focus:outline-none focus:border-gold font-mono shadow-sm" />
+                </div>
                 <div className="flex items-center gap-3 pt-4.5">
                   <input type="checkbox" id="editCustom" checked={editCustom} onChange={(e) => setEditCustom(e.target.checked)} className="rounded bg-white border-neutral-300 text-gold focus:ring-gold w-4 h-4 cursor-pointer" />
                   <label htmlFor="editCustom" className="text-sm font-mono text-neutral-600 cursor-pointer select-none">Enable Custom Laser Engraving canvas</label>
@@ -1672,6 +2168,29 @@ export default function AdminPanel() {
           </div>
         </div>
       )}
+
+      {/* Success Toast Popup */}
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.9 }}
+            className="fixed bottom-6 right-6 z-[200] flex items-center gap-3 bg-neutral-900 border border-gold/30 text-white px-5 py-3.5 rounded-xl shadow-2xl"
+          >
+            <div className="w-8 h-8 rounded-full bg-gold/10 flex items-center justify-center text-gold">
+              <Check size={16} className="stroke-[2.5]" />
+            </div>
+            <div>
+              <p className="text-[10px] font-mono text-gold/80 uppercase tracking-widest mb-0.5">Success</p>
+              <p className="text-sm font-medium tracking-wide">{toastMessage}</p>
+            </div>
+            <button onClick={() => setToastMessage(null)} className="ml-4 text-neutral-400 hover:text-white transition-colors">
+              <X size={14} />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

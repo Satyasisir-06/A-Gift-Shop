@@ -31,6 +31,7 @@ export const Footer: React.FC = () => {
       title: "Boutique",
       links: [
         { label: "Our Heritage", href: "/about" },
+        { label: "Our Work", href: "/our-work" },
         { label: "Custom Orders", href: "/contact" },
         { label: "FAQ & Support", href: "/faq" },
         { label: "Shipping Policy", href: "/terms" },
@@ -40,8 +41,8 @@ export const Footer: React.FC = () => {
       title: "Connect",
       links: [
         { label: "+91 72079 32026", href: "tel:+917207932026" },
-        { label: "curator@agiftshop.com", href: "mailto:curator@agiftshop.com" },
-        { label: "Gold Crest Plaza, Mumbai", href: "#" },
+        { label: "itsagiftstory@gmail.com", href: "mailto:itsagiftstory@gmail.com" },
+        { label: "Hyderabad, Telangana 500032, India", href: "#" },
       ],
     },
   ];
@@ -58,9 +59,9 @@ export const Footer: React.FC = () => {
           <div className="lg:col-span-2 space-y-5">
             <Link href="/" className="inline-block">
               <div className="flex items-center gap-2.5">
-                <img src="/logo.png" alt="A Gift Shop Logo" className="h-[66px] w-[66px] rounded-full object-contain border border-gold/10" />
+                <img src="/logo.png" alt="A Gift Story Logo" className="h-[66px] w-[66px] rounded-full object-contain border border-gold/10" />
                 <span className="font-heading text-xl font-bold tracking-[0.08em] text-white">
-                  A Gift<span className="text-gold"> Shop</span>
+                  A Gift<span className="text-gold"> Story</span>
                 </span>
               </div>
             </Link>
@@ -151,16 +152,27 @@ export const Footer: React.FC = () => {
           {/* Copyright & misc (6 cols) */}
           <div className="lg:col-span-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <p className="text-xs text-neutral-400">
-              &copy; {new Date().getFullYear()} A Gift Shop. All rights reserved.
+              &copy; {new Date().getFullYear()} A Gift Story. All rights reserved.
             </p>
-            <div className="flex items-center gap-5 text-xs text-neutral-400">
-              <Link href="/privacy" className="hover:text-gray-300 transition-colors">
-                Privacy Policy
-              </Link>
-              <span className="text-gray-700">/</span>
-              <Link href="/terms" className="hover:text-gray-300 transition-colors">
-                Terms of Service
-              </Link>
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-4 text-neutral-400">
+                <a href="https://www.instagram.com/itsagiftstory?igsh=MWg5dHR6cHF0cnk0Nw==" target="_blank" rel="noopener noreferrer" className="hover:text-gold transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
+                </a>
+                <a href="http://www.youtube.com/@Its_a_gift_story" target="_blank" rel="noopener noreferrer" className="hover:text-gold transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2.5 7.1C2.5 7.1 2 9.5 2 12c0 2.5.5 4.9.5 4.9C3 19.4 5.6 19.5 5.6 19.5c2.4.5 6.4.5 6.4.5s4 0 6.4-.5c0 0 2.6-.1 3.1-2.6.5 0 .5-2.4.5-4.9 0-2.5-.5-4.9-.5-4.9C21 4.6 18.4 4.5 18.4 4.5c-2.4-.5-6.4-.5-6.4-.5s-4 0-6.4.5C5.6 4.5 3 4.6 3 4.6z"/><path d="m10 15 5-3-5-3z"/></svg>
+                </a>
+              </div>
+              <div className="w-px h-4 bg-gray-800"></div>
+              <div className="flex items-center gap-5 text-xs text-neutral-400">
+                <Link href="/privacy" className="hover:text-gray-300 transition-colors">
+                  Privacy Policy
+                </Link>
+                <span className="text-gray-700">/</span>
+                <Link href="/terms" className="hover:text-gray-300 transition-colors">
+                  Terms of Service
+                </Link>
+              </div>
             </div>
           </div>
         </div>

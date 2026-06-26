@@ -36,7 +36,7 @@ export default function About() {
         <div className="section">
           <span className="text-[10px] uppercase tracking-[0.2em] text-gold font-bold">Our Journey</span>
           <h1 className="font-heading text-3xl font-bold uppercase tracking-widest text-black mt-2">
-            The A Gift Shop Legacy
+            The A Gift Story Legacy
           </h1>
           <div className="divider-gold mx-auto mt-4" />
         </div>
@@ -48,7 +48,7 @@ export default function About() {
             Crafting Tangible Memories
           </h2>
           <p className="text-gray-600 text-sm leading-relaxed">
-            Founded in 2021, A Gift Shop began with a simple belief: gifts should not be temporary novelties but permanent statements of love, honor and achievement. We select only solid walnut timber, thick lead-free brass plates, top-grain Italian leathers and 18k gold-plated alloys.
+            Founded in 2021, A Gift Story began with a simple belief: gifts should not be temporary novelties but permanent statements of love, honor and achievement. We select only solid walnut timber, thick lead-free brass plates, top-grain Italian leathers and 18k gold-plated alloys.
           </p>
           <p className="text-gray-600 text-sm leading-relaxed">
             By combining traditional hand-polishing with state-of-the-art CO2 laser engraving, we achieve a fidelity that digital printing cannot recreate. Every piece carries structural weight, designed to live forever.

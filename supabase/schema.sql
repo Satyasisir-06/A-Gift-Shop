@@ -1,5 +1,5 @@
 -- =========================================================================
--- A GIFT SHOP — Database Schema
+-- A GIFT STORY — Database Schema
 -- Supabase PostgreSQL Migrations File
 -- =========================================================================
 
@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS public.users (
 
 -- Seed default admin account
 INSERT INTO public.users (email, password, name, phone, role)
-VALUES ('admin@agiftshop.com', 'admin123', 'A Gift Shop Admin', '+91 99999 88888', 'admin')
+VALUES ('admin@agiftstory.com', 'admin123', 'A Gift Story Admin', '+91 99999 88888', 'admin')
 ON CONFLICT (email) DO NOTHING;
 
 -- 2. PRODUCTS TABLE
@@ -34,6 +34,8 @@ CREATE TABLE IF NOT EXISTS public.products (
     customizable BOOLEAN NOT NULL DEFAULT TRUE,
     features TEXT[] DEFAULT '{}',
     colors TEXT[] DEFAULT '{}',
+    images TEXT[] DEFAULT '{}',
+    min_quantity INT NOT NULL DEFAULT 1 CHECK (min_quantity >= 1),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
 
@@ -55,6 +57,15 @@ CREATE TABLE IF NOT EXISTS public.popup_offers (
     description TEXT,
     image_url TEXT NOT NULL DEFAULT '',
     active BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
+
+-- 3c. COUPONS TABLE (Dynamic coupon codes)
+CREATE TABLE IF NOT EXISTS public.coupons (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    code TEXT UNIQUE NOT NULL,
+    discount_percent INT NOT NULL CHECK (discount_percent > 0 AND discount_percent <= 100),
+    active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
 

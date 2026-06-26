@@ -22,7 +22,7 @@ export default function Checkout() {
   const [state, setState] = useState('');
   const [zip, setZip] = useState('');
 
-  const [paymentMethod, setPaymentMethod] = useState<'UPI' | 'COD' | 'Card'>('UPI');
+  const [paymentMethod, setPaymentMethod] = useState<'UPI'>('UPI');
   const [couponCode, setCouponCode] = useState('');
   const [couponError, setCouponError] = useState(false);
   const [couponSuccess, setCouponSuccess] = useState(false);
@@ -54,11 +54,11 @@ export default function Checkout() {
     }
   };
 
-  const handleApplyCoupon = (e: React.FormEvent) => {
+  const handleApplyCoupon = async (e: React.FormEvent) => {
     e.preventDefault();
     setCouponError(false);
     setCouponSuccess(false);
-    const success = applyCoupon(couponCode);
+    const success = await applyCoupon(couponCode);
     if (success) setCouponSuccess(true);
     else setCouponError(true);
   };
@@ -126,30 +126,18 @@ export default function Checkout() {
           <div className="lg:col-span-7 space-y-8">
             {/* Step 1: Customer */}
             {!user ? (
-              <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-6 shadow-sm">
-                <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
-                  <span className="w-7 h-7 rounded-full bg-black text-gold flex items-center justify-center font-heading text-xs font-bold">1</span>
-                  <h3 className="font-heading text-sm uppercase tracking-widest font-bold text-gray-900">Customer Details</h3>
+              <div className="bg-white rounded-xl border border-gray-200 p-8 text-center space-y-5 shadow-sm">
+                <div className="w-12 h-12 rounded-full bg-gold/10 text-gold flex items-center justify-center mx-auto mb-2 shadow-inner">
+                  <UserIcon size={24} />
                 </div>
-                <form onSubmit={handleGuestLogin} className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="block text-[11px] font-heading font-bold text-gray-700 uppercase">Name *</label>
-                      <input type="text" required value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" className="input text-sm" />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="block text-[11px] font-heading font-bold text-gray-700 uppercase">Email *</label>
-                      <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" className="input text-sm" />
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="block text-[11px] font-heading font-bold text-gray-700 uppercase">Phone (for tracking)</label>
-                    <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+91 72079 32026" className="input text-sm" />
-                  </div>
-                  <button type="submit" disabled={authLoading} className="btn btn-primary w-full text-xs">
-                    {authLoading ? "Please wait..." : "Continue"}
-                  </button>
-                </form>
+                <div>
+                  <h3 className="font-heading text-lg uppercase tracking-widest font-bold text-gray-900">Sign In to Checkout</h3>
+                  <p className="text-sm text-gray-500 font-mono mt-1">Create an account or log in to place orders, save details, and receive updates.</p>
+                </div>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
+                  <button onClick={() => router.push('/login?redirect=/checkout')} className="btn btn-primary w-full sm:w-auto px-8 py-3 text-xs">Login to Account</button>
+                  <button onClick={() => router.push('/login?redirect=/checkout&register=true')} className="btn btn-outline w-full sm:w-auto px-8 py-3 text-xs">Register New</button>
+                </div>
               </div>
             ) : (
               <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm flex items-center justify-between">
@@ -201,10 +189,8 @@ export default function Checkout() {
                 <h3 className="font-heading text-sm uppercase tracking-widest font-bold text-gray-900">Payment Method</h3>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {[
+                {[ 
                   { method: 'UPI' as const, icon: <QrCode size={22} />, label: "UPI QR", desc: "GPay / PhonePe" },
-                  { method: 'COD' as const, icon: <Truck size={22} />, label: "Cash on Delivery", desc: "Pay on arrival" },
-                  { method: 'Card' as const, icon: <CreditCard size={22} />, label: "Card Payment", desc: "Visa / MasterCard" },
                 ].map((opt) => (
                   <button key={opt.method} type="button" onClick={() => setPaymentMethod(opt.method)}
                     className={`p-4 border rounded-xl flex flex-col items-center justify-center gap-3 text-center transition-all ${
@@ -317,7 +303,7 @@ export default function Checkout() {
 
                 <div className="text-xs text-gray-500 space-y-1 bg-gray-50 rounded-lg p-3">
                   <p>Scan with any UPI app (GPay, PhonePe, Paytm)</p>
-                  <p className="font-semibold text-gray-800">UPI ID: agiftshop@icici</p>
+                  <p className="font-semibold text-gray-800">UPI ID: agiftstory@icici</p>
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-3">

@@ -12,7 +12,10 @@ export default function Contact() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (name && email && msg) {
+    if (name && msg) {
+      const text = `Hello A Gift Story!\n\nI am ${name}. ${email ? `(Email: ${email})\n\n` : '\n\n'}${msg}`;
+      const encodedText = encodeURIComponent(text);
+      window.open(`https://wa.me/917207932026?text=${encodedText}`, '_blank');
       setSubmitted(true);
       setName('');
       setEmail('');
@@ -46,8 +49,8 @@ export default function Contact() {
           <div className="space-y-6 text-sm text-gray-600">
             {[
               { icon: <Phone size={18} />, label: "Call Us", value: "+91 72079 32026" },
-              { icon: <Mail size={18} />, label: "Email", value: "curator@agiftshop.com" },
-              { icon: <MapPin size={18} />, label: "Studio", value: "Gold Crest Plaza, Mumbai, IN" },
+              { icon: <Mail size={18} />, label: "Email", value: "itsagiftstory@gmail.com" },
+              { icon: <MapPin size={18} />, label: "Studio", value: "Hyderabad, Telangana 500032, India" },
             ].map((item, i) => (
               <div key={i} className="flex items-center gap-4">
                 <div className="w-10 h-10 rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center text-gold">
@@ -90,8 +93,8 @@ export default function Contact() {
                 <label className="block text-[10px] font-heading font-bold text-gray-700 uppercase">Message *</label>
                 <textarea rows={4} required value={msg} onChange={(e) => setMsg(e.target.value)} placeholder="Tell us about your custom order..." className="input text-sm resize-none" />
               </div>
-              <button type="submit" className="btn btn-gold w-full text-xs h-11 flex items-center justify-center gap-2">
-                <Send size={16} /> Send Message
+              <button type="submit" className="btn btn-primary w-full flex justify-center items-center gap-2">
+                <MessageCircle size={16} /> Send via WhatsApp
               </button>
             </form>
           )}

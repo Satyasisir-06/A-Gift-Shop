@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Star, Shield, Sparkles, Upload, AlertCircle, ShoppingBag, Check } from 'lucide-react';
-import { DB, Product, CUSTOM_FONTS, CUSTOM_COLORS } from '@/lib/db';
+import { Star, Shield, Sparkles, Upload, AlertCircle, ShoppingBag, Check, Tag, Gift } from 'lucide-react';
+import { DB, Product, CUSTOM_FONTS, CUSTOM_COLORS, Coupon } from '@/lib/db';
 import { useCart } from '@/lib/context/CartContext';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
@@ -25,13 +25,28 @@ export default function ProductDetails() {
   const [specialInstructions, setSpecialInstructions] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [addedAlert, setAddedAlert] = useState(false);
+  const [mainImage, setMainImage] = useState<string | null>(null);
+  const [availableCoupon, setAvailableCoupon] = useState<Coupon | null>(null);
+  const [isTagHovered, setIsTagHovered] = useState(false);
 
   useEffect(() => {
     if (productId) {
       const loadProduct = async () => {
         try {
-          const prod = await DB.getProductById(productId);
+          const [prod, coupons] = await Promise.all([
+            DB.getProductById(productId),
+            DB.getCoupons()
+          ]);
           setProduct(prod);
+          if (prod) {
+            setQuantity(prod.min_quantity || 1);
+            setMainImage(prod.image_url);
+          }
+          const activeCoupons = coupons.filter(c => c.active);
+          if (activeCoupons.length > 0) {
+            // Grab any active coupon (let's pick one with lowest discount to not be too generous on single items)
+            setAvailableCoupon(activeCoupons.reduce((prev, current) => (prev.discount_percent < current.discount_percent) ? prev : current));
+          }
         } catch (err) {
           console.error("Failed to load product details:", err);
         } finally {
@@ -73,6 +88,7 @@ export default function ProductDetails() {
       custom_font: product.customizable ? selectedFont.name : undefined,
       custom_image: product.customizable && uploadedImage ? uploadedImage : undefined,
       special_instructions: specialInstructions || undefined,
+      min_quantity: product.min_quantity || 1,
     });
     setAddedAlert(true);
     setTimeout(() => setAddedAlert(false), 3000);
@@ -112,8 +128,41 @@ export default function ProductDetails() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16">
           {/* Preview Column */}
           <div className="lg:col-span-6 space-y-6">
-            <div className="relative aspect-square w-full rounded-2xl overflow-hidden border border-gray-200 bg-gray-50 shadow-sm">
-              <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+            <div className="relative aspect-square w-full rounded-2xl overflow-hidden border border-gray-200 bg-gray-50 shadow-sm group">
+              <img src={mainImage || product.image_url} alt={product.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.02]" />
+
+              {/* Gift Tag Coupon */}
+              {availableCoupon && (
+                <motion.div 
+                  className="absolute top-6 right-6 z-10 flex flex-col items-end"
+                  initial="initial"
+                  animate="animate"
+                  onHoverStart={() => setIsTagHovered(true)}
+                  onHoverEnd={() => setIsTagHovered(false)}
+                >
+                  <motion.div 
+                    className="bg-white/95 backdrop-blur-sm border border-gold/40 shadow-xl rounded-full flex items-center justify-center cursor-pointer p-3.5 relative hover:shadow-gold/20"
+                    whileHover={{ scale: 1.05 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                  >
+                    <Tag size={22} className="text-gold" />
+                    
+                    {/* Hanging String effect */}
+                    <div className="absolute -top-6 right-1/2 w-0.5 h-6 bg-gradient-to-b from-transparent to-gold/30"></div>
+                  </motion.div>
+
+                  {/* Expanding Message */}
+                  <motion.div
+                    initial={{ opacity: 0, y: -10, scale: 0.9, pointerEvents: 'none' }}
+                    animate={{ opacity: isTagHovered ? 1 : 0, y: isTagHovered ? 0 : -10, scale: isTagHovered ? 1 : 0.9 }}
+                    transition={{ duration: 0.2 }}
+                    className="mt-4 bg-neutral-900/95 backdrop-blur-md text-white text-xs font-medium px-4 py-3.5 rounded-xl shadow-2xl border border-neutral-700 w-56 text-right"
+                  >
+                    <span className="text-gold flex items-center justify-end gap-1.5 mb-1.5 uppercase tracking-widest text-[10px]"><Sparkles size={10}/> A Gift For You</span>
+                    Enjoy <span className="font-bold text-sm">{availableCoupon.discount_percent}% OFF</span> this piece. Use code <span className="font-mono font-bold text-gold text-sm">{availableCoupon.code}</span> at checkout.
+                  </motion.div>
+                </motion.div>
+              )}
 
               {product.customizable && (customText || uploadedImage) && (
                 <div className="absolute inset-0 bg-black/20 flex flex-col items-center justify-center p-6 text-center">
@@ -142,6 +191,23 @@ export default function ProductDetails() {
                 </div>
               )}
             </div>
+
+            {/* Thumbnail Gallery */}
+            {(product.images && product.images.length > 0) && (
+              <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                {[product.image_url, ...product.images].map((img, idx) => (
+                  <button 
+                    key={idx} 
+                    onClick={() => setMainImage(img)}
+                    className={`relative w-20 h-20 rounded-lg overflow-hidden border-2 flex-shrink-0 transition-all ${
+                      mainImage === img ? 'border-gold' : 'border-transparent hover:border-gray-300'
+                    }`}
+                  >
+                    <img src={img} alt={`${product.name} view ${idx + 1}`} className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
 
             <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 flex items-center gap-3">
               <Shield size={18} className="text-gold flex-shrink-0" />
@@ -260,13 +326,20 @@ export default function ProductDetails() {
 
             {/* Add to Cart */}
             <div className="space-y-4 pt-4 border-t border-gray-100">
-              <div className="flex items-center gap-4">
-                <span className="text-xs uppercase tracking-wider font-heading font-bold text-gray-700">Qty</span>
-                <div className="flex items-center border border-gray-200 rounded-md bg-white">
-                  <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="px-3.5 py-1.5 text-gray-500 hover:text-black font-bold text-sm transition-colors">-</button>
-                  <span className="px-3.5 text-gray-900 font-semibold text-sm">{quantity}</span>
-                  <button onClick={() => setQuantity(quantity + 1)} className="px-3.5 py-1.5 text-gray-500 hover:text-black font-bold text-sm transition-colors">+</button>
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-4">
+                  <span className="text-xs uppercase tracking-wider font-heading font-bold text-gray-700">Qty</span>
+                  <div className="flex items-center border border-gray-200 rounded-md bg-white">
+                    <button onClick={() => setQuantity(Math.max(product.min_quantity || 1, quantity - 1))} className="px-3.5 py-1.5 text-gray-500 hover:text-black font-bold text-sm transition-colors">-</button>
+                    <span className="px-3.5 text-gray-900 font-semibold text-sm">{quantity}</span>
+                    <button onClick={() => setQuantity(quantity + 1)} className="px-3.5 py-1.5 text-gray-500 hover:text-black font-bold text-sm transition-colors">+</button>
+                  </div>
                 </div>
+                {product.min_quantity && product.min_quantity > 1 && (
+                  <span className="text-[11px] text-gray-500 italic">
+                    * Minimum order quantity for this item is {product.min_quantity}.
+                  </span>
+                )}
               </div>
 
               <button onClick={handleAddToCart} className="btn btn-gold w-full text-center">

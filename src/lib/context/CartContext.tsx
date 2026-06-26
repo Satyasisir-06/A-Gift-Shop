@@ -14,7 +14,7 @@ interface CartContextType {
   addToCart: (item: Omit<OrderItem, 'id'>) => void;
   removeFromCart: (itemId: string) => void;
   updateQuantity: (itemId: string, qty: number) => void;
-  applyCoupon: (code: string) => boolean;
+  applyCoupon: (code: string) => Promise<boolean>;
   clearCart: () => void;
   placeOrder: (shippingAddress: string, paymentMethod: Order['payment_method']) => Promise<Order>;
   activeCoupon: string;
@@ -78,10 +78,13 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     saveCart(newCart);
   };
 
-  const applyCoupon = (code: string): boolean => {
+  const applyCoupon = async (code: string): Promise<boolean> => {
     const cleanCode = code.toUpperCase().trim();
-    if (cleanCode === 'ELEGANCE' || cleanCode === 'WELCOME10') {
-      setDiscountPercent(10);
+    const coupons = await DB.getCoupons();
+    const validCoupon = coupons.find(c => c.code === cleanCode && c.active);
+    
+    if (validCoupon) {
+      setDiscountPercent(validCoupon.discount_percent);
       setActiveCoupon(cleanCode);
       return true;
     }

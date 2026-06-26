@@ -1,7 +1,7 @@
-# Project Memory: A Gift Shop
+# Project Memory: A Gift Story
 
 ## Project Overview
-**A Gift Shop** is a premium, mobile-first customizable gifts e-commerce platform. It provides a boutique-quality shopping experience for personalized bracelets, pens, keychains, stickers, mugs, and photo frames. The interface boasts a high-end luxury styling with white, black, and gold colors, smooth Framer Motion micro-animations, and full self-service customization features.
+**A Gift Story** is a premium, mobile-first customizable gifts e-commerce platform. It provides a boutique-quality shopping experience for personalized bracelets, pens, keychains, stickers, mugs, and photo frames. The interface boasts a high-end luxury styling with white, black, and gold colors, smooth Framer Motion micro-animations, and full self-service customization features.
 
 ---
 
@@ -104,7 +104,7 @@ All database interactions are managed by the unified database interface in `src/
 ## Environment Variables
 - `NEXT_PUBLIC_SUPABASE_URL`: Supabase project URL
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Supabase public key
-- `NEXT_PUBLIC_UPI_ID`: Merchant UPI address for payment QR codes (defaults to `agiftshop@icici`)
+- `NEXT_PUBLIC_UPI_ID`: Merchant UPI address for payment QR codes (defaults to `agiftstory@icici`)
 
 ---
 

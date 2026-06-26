@@ -8,7 +8,9 @@ export interface Product {
   category: string;
   stock: number;
   image_url: string;
+  images?: string[];
   customizable: boolean;
+  min_quantity?: number;
   features?: string[];
   colors?: string[];
 }
@@ -29,6 +31,19 @@ export interface PopupOffer {
   created_at: string;
 }
 
+export interface Coupon {
+  id: string;
+  code: string;
+  discount_percent: number;
+  active: boolean;
+  created_at: string;
+}
+
+export interface StudioVideo {
+  url: string;
+  thumbnail?: string;
+}
+
 export interface OrderItem {
   id: string;
   product_id: string;
@@ -41,6 +56,7 @@ export interface OrderItem {
   custom_color?: string;
   custom_font?: string;
   special_instructions?: string;
+  min_quantity?: number;
 }
 
 export interface Order {
@@ -210,6 +226,23 @@ const INITIAL_ANNOUNCEMENTS: Announcement[] = [
     title: "🚚 Nationwide Express Delivery Guaranteed",
     description: "Custom orders placed today will ship within 48 hours with guaranteed secure tracking.",
     created_at: new Date(Date.now() - 86400000).toISOString()
+  }
+];
+
+const INITIAL_COUPONS: Coupon[] = [
+  {
+    id: "c1",
+    code: "ELEGANCE",
+    discount_percent: 10,
+    active: true,
+    created_at: new Date().toISOString()
+  },
+  {
+    id: "c2",
+    code: "WELCOME10",
+    discount_percent: 10,
+    active: true,
+    created_at: new Date().toISOString()
   }
 ];
 
@@ -406,10 +439,11 @@ export class DB {
         .order('created_at', { ascending: false });
       
       if (!error && dbAnns && dbAnns.length > 0) {
+        const filteredAnns = dbAnns.filter(a => a.id !== '00000000-0000-0000-0000-000000000001' && a.id !== '00000000-0000-0000-0000-000000000002' && a.id !== '00000000-0000-0000-0000-000000000003');
         if (typeof window !== 'undefined') {
-          localStorage.setItem('gs_announcements', JSON.stringify(dbAnns));
+          localStorage.setItem('gs_announcements', JSON.stringify(filteredAnns));
         }
-        return dbAnns;
+        return filteredAnns;
       }
     } catch (e) {
       console.warn("Supabase announcements table not accessible:", e);
@@ -527,6 +561,66 @@ export class DB {
     localStorage.setItem('gs_popup_offers', JSON.stringify(currentOffers));
   }
 
+  static async getCoupons(): Promise<Coupon[]> {
+    try {
+      const { data: dbCoupons, error } = await supabase
+        .from('coupons')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (!error && dbCoupons && dbCoupons.length > 0) {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('gs_coupons', JSON.stringify(dbCoupons));
+        }
+        return dbCoupons;
+      }
+    } catch (e) {
+      console.warn("Supabase coupons table not accessible:", e);
+    }
+
+    if (typeof window === 'undefined') return INITIAL_COUPONS;
+    const stored = localStorage.getItem('gs_coupons');
+    if (!stored) {
+      localStorage.setItem('gs_coupons', JSON.stringify(INITIAL_COUPONS));
+      return INITIAL_COUPONS;
+    }
+    return JSON.parse(stored);
+  }
+
+  static async saveCoupon(coupon: Coupon): Promise<void> {
+    try {
+      const { error } = await supabase.from('coupons').upsert({
+        id: coupon.id.includes('c_') ? undefined : coupon.id,
+        code: coupon.code.toUpperCase(),
+        discount_percent: coupon.discount_percent,
+        active: coupon.active,
+        created_at: coupon.created_at
+      });
+      if (error) console.error("Error saving coupon to Supabase:", error?.message || JSON.stringify(error));
+    } catch (e) {}
+
+    if (typeof window === 'undefined') return;
+    const coupons = await this.getCoupons();
+    const idx = coupons.findIndex(c => c.id === coupon.id);
+    if (idx >= 0) {
+      coupons[idx] = { ...coupon, code: coupon.code.toUpperCase() };
+    } else {
+      coupons.unshift({ ...coupon, code: coupon.code.toUpperCase() });
+    }
+    localStorage.setItem('gs_coupons', JSON.stringify(coupons));
+  }
+
+  static async deleteCoupon(id: string): Promise<void> {
+    try {
+      const { error } = await supabase.from('coupons').delete().eq('id', id);
+      if (error) console.error("Error deleting coupon from Supabase:", error?.message || JSON.stringify(error));
+    } catch (e) {}
+
+    if (typeof window === 'undefined') return;
+    const coupons = (await this.getCoupons()).filter(c => c.id !== id);
+    localStorage.setItem('gs_coupons', JSON.stringify(coupons));
+  }
+
   static async getOrders(): Promise<Order[]> {
     try {
       const { data: dbOrders, error } = await supabase
@@ -557,7 +651,8 @@ export class DB {
             custom_image,
             custom_color,
             custom_font,
-            special_instructions
+            special_instructions,
+            min_quantity
           )
         `)
         .order('created_at', { ascending: false });
@@ -643,7 +738,8 @@ export class DB {
                 custom_image,
                 custom_color,
                 custom_font,
-                special_instructions
+                special_instructions,
+                min_quantity
               )
             `)
             .order('created_at', { ascending: false });
@@ -768,7 +864,7 @@ export class DB {
           .insert(itemsToInsert);
 
         if (itemsError) {
-          console.error("Error inserting order items:", itemsError);
+          console.error("Error inserting order items:", itemsError?.message || JSON.stringify(itemsError));
         }
 
         createdOrder = {
@@ -811,7 +907,7 @@ export class DB {
         .eq('id', orderId);
       
       if (error) {
-        console.error("Error updating order status in Supabase:", error);
+        console.error("Error updating order status in Supabase:", error?.message || JSON.stringify(error));
         
         // Fallback: If column not found error, update only the status column (guaranteed to exist)
         if (error.code === '42703' && (shippingCarrier !== undefined || trackingNumber !== undefined)) {
@@ -926,17 +1022,43 @@ export class DB {
   }
 
   static async getBestsellers(): Promise<string[]> {
+    try {
+      const { data, error } = await supabase.from('announcements').select('description').eq('id', '00000000-0000-0000-0000-000000000001').single();
+      if (!error && data && data.description) {
+        if (typeof window !== 'undefined') localStorage.setItem('gs_bestsellers', data.description);
+        return JSON.parse(data.description);
+      }
+    } catch (e) {}
+
     if (typeof window === 'undefined') return [];
     const stored = localStorage.getItem('gs_bestsellers');
     return stored ? JSON.parse(stored) : [];
   }
 
   static async setBestsellers(ids: string[]): Promise<void> {
+    try {
+      await supabase.from('announcements').upsert({
+        id: '00000000-0000-0000-0000-000000000001',
+        title: 'system_bestsellers',
+        description: JSON.stringify(ids),
+        type: 'system',
+        created_at: new Date().toISOString()
+      });
+    } catch (e) {}
+
     if (typeof window === 'undefined') return;
     localStorage.setItem('gs_bestsellers', JSON.stringify(ids));
   }
 
   static async getCollections(): Promise<Collection[]> {
+    try {
+      const { data, error } = await supabase.from('announcements').select('description').eq('id', '00000000-0000-0000-0000-000000000002').single();
+      if (!error && data && data.description) {
+        if (typeof window !== 'undefined') localStorage.setItem('gs_collections', data.description);
+        return JSON.parse(data.description);
+      }
+    } catch (e) {}
+
     if (typeof window === 'undefined') return INITIAL_COLLECTIONS;
     const stored = localStorage.getItem('gs_collections');
     if (!stored) {
@@ -947,7 +1069,58 @@ export class DB {
   }
 
   static async saveCollections(collections: Collection[]): Promise<void> {
+    try {
+      await supabase.from('announcements').upsert({
+        id: '00000000-0000-0000-0000-000000000002',
+        title: 'system_collections',
+        description: JSON.stringify(collections),
+        type: 'system',
+        created_at: new Date().toISOString()
+      });
+    } catch (e) {}
+
     if (typeof window === 'undefined') return;
     localStorage.setItem('gs_collections', JSON.stringify(collections));
+  }
+
+  static async getStudioVideos(): Promise<StudioVideo[]> {
+    try {
+      const { data, error } = await supabase.from('announcements').select('description').eq('id', '00000000-0000-0000-0000-000000000003').single();
+      if (!error && data && data.description) {
+        if (typeof window !== 'undefined') localStorage.setItem('gs_studio_videos', data.description);
+        
+        // Handle backwards compatibility (if it was an array of strings, convert to objects)
+        const parsed = JSON.parse(data.description);
+        if (parsed.length > 0 && typeof parsed[0] === 'string') {
+          return parsed.map((url: string) => ({ url }));
+        }
+        return parsed;
+      }
+    } catch (e) {}
+
+    if (typeof window === 'undefined') return [];
+    const stored = localStorage.getItem('gs_studio_videos');
+    if (!stored) return [];
+    
+    const parsed = JSON.parse(stored);
+    if (parsed.length > 0 && typeof parsed[0] === 'string') {
+      return parsed.map((url: string) => ({ url }));
+    }
+    return parsed;
+  }
+
+  static async setStudioVideos(videos: StudioVideo[]): Promise<void> {
+    try {
+      await supabase.from('announcements').upsert({
+        id: '00000000-0000-0000-0000-000000000003',
+        title: 'system_studio_videos',
+        description: JSON.stringify(videos),
+        type: 'system',
+        created_at: new Date().toISOString()
+      });
+    } catch (e) {}
+
+    if (typeof window === 'undefined') return;
+    localStorage.setItem('gs_studio_videos', JSON.stringify(videos));
   }
 }

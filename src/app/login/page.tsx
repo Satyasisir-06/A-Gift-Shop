@@ -20,8 +20,29 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('register') === 'true') {
+        setIsSignUp(true);
+      }
+    }
+  }, []);
+
+  const handleRedirect = (role: string) => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const redirectUrl = urlParams.get('redirect');
+      if (redirectUrl) {
+        router.push(redirectUrl);
+        return;
+      }
+    }
+    router.push(role === 'admin' ? '/admin' : '/dashboard');
+  };
+
+  useEffect(() => {
     if (user) {
-      router.push(user.role === 'admin' ? '/admin' : '/dashboard');
+      handleRedirect(user.role);
     }
   }, [user, router]);
 
@@ -41,10 +62,10 @@ export default function LoginPage() {
           return;
         }
         const loggedUser = await register(email, name, phone, password);
-        router.push(loggedUser.role === 'admin' ? '/admin' : '/dashboard');
+        handleRedirect(loggedUser.role);
       } else {
         const loggedUser = await login(email, password);
-        router.push(loggedUser.role === 'admin' ? '/admin' : '/dashboard');
+        handleRedirect(loggedUser.role);
       }
     } catch (err: any) {
       setErrorMsg(err.message || "Authentication failed. Make sure you registered or created the database tables.");
@@ -107,7 +128,7 @@ export default function LoginPage() {
                 <div className="absolute inset-0 rounded-full bg-gold/20 blur-xl scale-150" />
                 <img
                   src="/logo.png"
-                  alt="A Gift Shop"
+                  alt="A Gift Story"
                   className="relative h-20 w-20 rounded-full object-contain border-2 border-gold/30 mx-auto shadow-lg"
                 />
               </div>
@@ -119,7 +140,7 @@ export default function LoginPage() {
               transition={{ delay: 0.25, duration: 0.5 }}
             >
               <h1 className="font-heading text-2xl sm:text-3xl font-bold">
-                <span className="text-gold-gradient">A Gift Shop</span>
+                <span className="text-gold-gradient">A Gift Story</span>
               </h1>
               <div className="w-10 h-0.5 bg-gold mx-auto mt-3 mb-2" />
               <p className="text-[10px] uppercase tracking-[0.3em] text-gray-400 font-bold">
@@ -304,7 +325,7 @@ export default function LoginPage() {
           transition={{ delay: 0.6, duration: 0.4 }}
           className="text-center text-[10px] text-gray-300 mt-6 tracking-wider"
         >
-          &copy; {new Date().getFullYear()} A Gift Shop. All rights reserved.
+          &copy; {new Date().getFullYear()} A Gift Story. All rights reserved.
         </motion.p>
       </motion.div>
     </div>

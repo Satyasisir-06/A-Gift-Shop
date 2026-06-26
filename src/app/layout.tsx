@@ -21,14 +21,14 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "A Gift Shop — Personalized Gifts Crafted With Love",
+  title: "A Gift Story — Personalized Gifts Crafted With Love",
   description:
     "Premium customized bracelets, pens, keychains, mugs, photo frames and more. Turn your memories into unforgettable gifts.",
   keywords: [
     "personalized gifts",
     "custom bracelets",
     "custom mugs",
-    "gift shop",
+    "gift story",
     "corporate gifts",
   ],
 };

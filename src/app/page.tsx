@@ -375,7 +375,7 @@ export default function Home() {
         <div className="section">
           <div className="text-center space-y-2 mb-16">
             <h2 className="text-2xl sm:text-3xl font-heading font-bold uppercase tracking-widest text-black">
-              The A Gift Shop Standard
+              The A Gift Story Standard
             </h2>
             <div className="divider-gold mx-auto" />
             <p className="text-gray-500 text-sm max-w-lg mx-auto">

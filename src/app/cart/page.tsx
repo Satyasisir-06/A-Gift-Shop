@@ -3,19 +3,42 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useCart } from '@/lib/context/CartContext';
+import { DB, Coupon } from '@/lib/db';
 import { Trash2, ShoppingBag, ArrowRight, Tag } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function CartPage() {
   const { cart, subtotal, deliveryCharge, discount, total, activeCoupon, applyCoupon, updateQuantity, removeFromCart } = useCart();
   const [couponCode, setCouponCode] = useState('');
   const [couponError, setCouponError] = useState(false);
   const [couponSuccess, setCouponSuccess] = useState(false);
+  const [availableCoupons, setAvailableCoupons] = useState<Coupon[]>([]);
 
-  const handleApplyCoupon = (e: React.FormEvent) => {
+  React.useEffect(() => {
+    DB.getCoupons().then(coupons => setAvailableCoupons(coupons.filter(c => c.active)));
+  }, []);
+
+  const bestCoupon = availableCoupons.length > 0 
+    ? availableCoupons.reduce((prev, current) => (prev.discount_percent > current.discount_percent) ? prev : current)
+    : null;
+
+  const targetAmount = bestCoupon ? bestCoupon.discount_percent * 200 : 3000;
+  const progressPercent = Math.min((subtotal / targetAmount) * 100, 100);
+  const isTargetReached = subtotal >= targetAmount;
+
+  React.useEffect(() => {
+    if (isTargetReached && bestCoupon && !activeCoupon && !couponSuccess) {
+      applyCoupon(bestCoupon.code).then(success => {
+        if (success) setCouponSuccess(true);
+      });
+    }
+  }, [isTargetReached, bestCoupon, activeCoupon, couponSuccess, applyCoupon]);
+
+  const handleApplyCoupon = async (e: React.FormEvent) => {
     e.preventDefault();
     setCouponError(false);
     setCouponSuccess(false);
-    const success = applyCoupon(couponCode);
+    const success = await applyCoupon(couponCode);
     if (success) {
       setCouponSuccess(true);
     } else {
@@ -29,6 +52,38 @@ export default function CartPage() {
         <h1 className="font-heading text-2xl sm:text-3xl font-bold uppercase tracking-widest text-black mb-10 text-center">
           Your Cart
         </h1>
+
+        {bestCoupon && cart.length > 0 && (
+          <div className="mb-8 bg-white border border-gold/30 rounded-xl p-5 shadow-sm relative overflow-hidden">
+            <AnimatePresence>
+              {isTargetReached && (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="absolute inset-0 bg-gold/5 z-0 pointer-events-none" 
+                />
+              )}
+            </AnimatePresence>
+            <div className="relative z-10">
+              <div className="flex justify-between items-end mb-3">
+                <div className="text-sm font-medium text-neutral-800">
+                  {isTargetReached 
+                    ? <span className="text-gold font-bold flex items-center gap-1">✨ You've unlocked {bestCoupon.discount_percent}% OFF! Code {bestCoupon.code} applied.</span>
+                    : <span>Add <span className="font-bold font-mono">₹{(targetAmount - subtotal).toLocaleString('en-IN')}</span> more to unlock <span className="font-bold text-gold">{bestCoupon.discount_percent}% OFF</span></span>
+                  }
+                </div>
+              </div>
+              <div className="h-2 bg-neutral-100 rounded-full overflow-hidden">
+                <motion.div 
+                  className={`h-full rounded-full ${isTargetReached ? 'bg-gold' : 'bg-neutral-800'}`}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${progressPercent}%` }}
+                  transition={{ duration: 0.8, ease: "easeOut" }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
         {cart.length === 0 ? (
           <div className="bg-white rounded-2xl border border-gray-200 p-16 text-center space-y-4 shadow-sm">
@@ -65,7 +120,7 @@ export default function CartPage() {
                     <div className="flex items-center gap-4 mt-4">
                       <span className="text-[10px] uppercase font-bold text-gray-400">Qty</span>
                       <div className="flex items-center border border-gray-200 rounded-md">
-                        <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="px-3 py-1 text-gray-500 hover:text-black font-semibold text-xs transition-colors">-</button>
+                        <button onClick={() => updateQuantity(item.id, Math.max(item.min_quantity || 1, item.quantity - 1))} className="px-3 py-1 text-gray-500 hover:text-black font-semibold text-xs transition-colors">-</button>
                         <span className="px-3 text-gray-800 text-xs font-semibold">{item.quantity}</span>
                         <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="px-3 py-1 text-gray-500 hover:text-black font-semibold text-xs transition-colors">+</button>
                       </div>
