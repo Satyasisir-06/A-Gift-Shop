@@ -144,6 +144,7 @@ export default function OurWorkPage() {
                         title={`Instagram Video ${index + 1}`}
                         className="w-full h-full border-none"
                         scrolling="no"
+                        // @ts-expect-error React 19 requires lowercase, but @types/react expects camelCase
                         allowtransparency="true"
                         allow="encrypted-media"
                       ></iframe>

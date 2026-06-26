@@ -733,7 +733,7 @@ export default function AdminPanel() {
   };
 
   const productPopularity = orders.flatMap(o => o.items).reduce((acc, item) => {
-    acc[item.product_name] = (acc[item.product_name] || 0) + item.quantity;
+    acc[item.name] = (acc[item.name] || 0) + item.quantity;
     return acc;
   }, {} as Record<string, number>);
   const popularProductsData = Object.entries(productPopularity)
