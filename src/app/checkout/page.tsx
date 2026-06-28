@@ -91,6 +91,13 @@ export default function Checkout() {
       try {
         const order = await placeOrder(fullAddress, paymentMethod);
         clearCart();
+
+        // Notify admin via WhatsApp
+        const adminPhone = "917207932026";
+        const message = `*New Order Received!*\n\n*Order ID:* ${order.id}\n*Customer:* ${user?.name || 'Guest'}\n*Amount:* ₹${total.toLocaleString('en-IN')}\n*Method:* ${paymentMethod}`;
+        const waUrl = `https://wa.me/${adminPhone}?text=${encodeURIComponent(message)}`;
+        window.open(waUrl, '_blank');
+
         router.push(`/order-success?id=${order.id}`);
       } catch (err) {
         isPlacingOrder.current = false;
@@ -121,6 +128,13 @@ export default function Checkout() {
     try {
       const order = await placeOrder(fullAddress, 'UPI');
       clearCart();
+
+      // Notify admin via WhatsApp
+      const adminPhone = "917207932026";
+      const message = `*New Order Received!*\n\n*Order ID:* ${order.id}\n*Customer:* ${user?.name || 'Guest'}\n*Amount:* ₹${total.toLocaleString('en-IN')}\n*Method:* UPI\n*UTR:* ${utrNumber}`;
+      const waUrl = `https://wa.me/${adminPhone}?text=${encodeURIComponent(message)}`;
+      window.open(waUrl, '_blank');
+
       router.push(`/order-success?id=${order.id}`);
     } catch (err) {
       isPlacingOrder.current = false;

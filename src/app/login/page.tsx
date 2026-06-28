@@ -58,8 +58,9 @@ export default function LoginPage() {
     setLoading(true);
     try {
         if (isForgotPassword) {
+          const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
           const { error } = await supabase.auth.resetPasswordForEmail(email, {
-            redirectTo: `${window.location.origin}/update-password`,
+            redirectTo: `${baseUrl}/update-password`,
           });
           if (error) throw new Error(error.message);
           setErrorMsg("Password reset link sent! Check your email.");

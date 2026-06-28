@@ -2,11 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Star, Shield, Sparkles, Upload, AlertCircle, ShoppingBag, Check, Tag, Gift } from 'lucide-react';
+import { Star, Shield, Sparkles, Upload, AlertCircle, ShoppingBag, Check, Tag, Gift, X } from 'lucide-react';
 import { DB, Product, CUSTOM_FONTS, CUSTOM_COLORS, Coupon } from '@/lib/db';
 import { useCart } from '@/lib/context/CartContext';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function ProductDetails() {
   const params = useParams();
@@ -28,6 +28,7 @@ export default function ProductDetails() {
   const [mainImage, setMainImage] = useState<string | null>(null);
   const [availableCoupon, setAvailableCoupon] = useState<Coupon | null>(null);
   const [isTagHovered, setIsTagHovered] = useState(false);
+  const [isImageExpanded, setIsImageExpanded] = useState(false);
 
   useEffect(() => {
     if (productId) {
@@ -128,7 +129,10 @@ export default function ProductDetails() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16">
           {/* Preview Column */}
           <div className="lg:col-span-6 space-y-6">
-            <div className="relative aspect-square w-full rounded-2xl overflow-hidden border border-gray-200 bg-gray-50 shadow-sm group">
+            <div 
+              className="relative aspect-square w-full rounded-2xl overflow-hidden border border-gray-200 bg-gray-50 shadow-sm group cursor-pointer"
+              onClick={() => setIsImageExpanded(true)}
+            >
               <img src={mainImage || product.image_url} alt={product.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.02]" />
 
               {/* Gift Tag Coupon */}
@@ -139,6 +143,7 @@ export default function ProductDetails() {
                   animate="animate"
                   onHoverStart={() => setIsTagHovered(true)}
                   onHoverEnd={() => setIsTagHovered(false)}
+                  onClick={(e) => e.stopPropagation()}
                 >
                   <motion.div 
                     className="bg-white/95 backdrop-blur-sm border border-gold/40 shadow-xl rounded-full flex items-center justify-center cursor-pointer p-3.5 relative hover:shadow-gold/20"
@@ -374,6 +379,36 @@ export default function ProductDetails() {
           </div>
         </div>
       </div>
+
+      {/* Full Screen Image Modal */}
+      <AnimatePresence>
+        {isImageExpanded && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 sm:p-10 cursor-pointer"
+            onClick={() => setIsImageExpanded(false)}
+          >
+            <button 
+              className="absolute top-6 right-6 text-white/70 hover:text-white transition-colors"
+              onClick={() => setIsImageExpanded(false)}
+            >
+              <X size={32} />
+            </button>
+            <motion.img
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              src={mainImage || product.image_url}
+              alt={product.name}
+              className="max-w-full max-h-full object-contain cursor-default rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
