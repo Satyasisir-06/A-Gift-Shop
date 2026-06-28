@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useCart } from '@/lib/context/CartContext';
 import { useAuth } from '@/lib/context/AuthContext';
 import { DB, PaymentConfig } from '@/lib/db';
-import { CreditCard, Check, QrCode, ArrowRight, Truck, ShieldCheck, User as UserIcon } from 'lucide-react';
+import { CreditCard, Check, QrCode, ArrowRight, Truck, ShieldCheck, User as UserIcon, HelpCircle, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Checkout() {
@@ -31,6 +31,7 @@ export default function Checkout() {
   const [paymentConfig, setPaymentConfig] = useState<PaymentConfig | null>(null);
 
   const [showUPIModal, setShowUPIModal] = useState(false);
+  const [showUTRHelper, setShowUTRHelper] = useState(false);
   const [utrNumber, setUtrNumber] = useState('');
   const [loadingOrder, setLoadingOrder] = useState(false);
   const isPlacingOrder = useRef(false);
@@ -92,11 +93,13 @@ export default function Checkout() {
         const order = await placeOrder(fullAddress, paymentMethod);
         clearCart();
 
-        // Notify admin via WhatsApp
-        const adminPhone = "917207932026";
+        // Notify admin via WhatsApp (Backend)
         const message = `*New Order Received!*\n\n*Order ID:* ${order.id}\n*Customer:* ${user?.name || 'Guest'}\n*Amount:* ₹${total.toLocaleString('en-IN')}\n*Method:* ${paymentMethod}`;
-        const waUrl = `https://wa.me/${adminPhone}?text=${encodeURIComponent(message)}`;
-        window.open(waUrl, '_blank');
+        fetch('/api/notify-admin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message })
+        }).catch(err => console.error("Failed to notify admin:", err));
 
         router.push(`/order-success?id=${order.id}`);
       } catch (err) {
@@ -129,11 +132,13 @@ export default function Checkout() {
       const order = await placeOrder(fullAddress, 'UPI');
       clearCart();
 
-      // Notify admin via WhatsApp
-      const adminPhone = "917207932026";
+      // Notify admin via WhatsApp (Backend)
       const message = `*New Order Received!*\n\n*Order ID:* ${order.id}\n*Customer:* ${user?.name || 'Guest'}\n*Amount:* ₹${total.toLocaleString('en-IN')}\n*Method:* UPI\n*UTR:* ${utrNumber}`;
-      const waUrl = `https://wa.me/${adminPhone}?text=${encodeURIComponent(message)}`;
-      window.open(waUrl, '_blank');
+      fetch('/api/notify-admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message })
+      }).catch(err => console.error("Failed to notify admin:", err));
 
       router.push(`/order-success?id=${order.id}`);
     } catch (err) {
@@ -332,7 +337,12 @@ export default function Checkout() {
 
                 {/* UTR Input Section */}
                 <div className="space-y-1.5 text-left border-t border-gray-100 pt-4">
-                  <label className="block text-[11px] font-heading font-bold text-gray-700 uppercase">UTR / Reference Number *</label>
+                  <div className="flex items-center gap-2">
+                    <label className="block text-[11px] font-heading font-bold text-gray-700 uppercase">UTR / Reference Number *</label>
+                    <button type="button" onClick={() => setShowUTRHelper(true)} className="text-gray-400 hover:text-gold transition-colors" title="What is UTR?">
+                      <HelpCircle size={14} />
+                    </button>
+                  </div>
                   <input 
                     type="text" 
                     required 
@@ -357,6 +367,29 @@ export default function Checkout() {
                 </div>
               </div>
             </motion.div>
+
+            {/* UTR Help Modal */}
+            <AnimatePresence>
+              {showUTRHelper && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4"
+                  onClick={() => setShowUTRHelper(false)}
+                >
+                  <div className="relative bg-white rounded-xl p-2 max-w-lg w-full" onClick={e => e.stopPropagation()}>
+                    <button 
+                      onClick={() => setShowUTRHelper(false)}
+                      className="absolute -top-12 right-0 text-white/80 hover:text-white"
+                    >
+                      <X size={28} />
+                    </button>
+                    <img src="/utr.jpg" alt="How to find UTR number" className="w-full h-auto rounded-lg object-contain" />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </>
         )}
       </AnimatePresence>
