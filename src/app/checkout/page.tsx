@@ -93,8 +93,9 @@ export default function Checkout() {
         const order = await placeOrder(fullAddress, paymentMethod);
         clearCart();
 
-        // Notify admin via WhatsApp (Backend)
-        const message = `*New Order Received!*\n\n*Order ID:* ${order.id}\n*Customer:* ${user?.name || 'Guest'}\n*Amount:* ₹${total.toLocaleString('en-IN')}\n*Method:* ${paymentMethod}`;
+        // Notify admin via WhatsApp/Telegram (Backend)
+        const itemsString = cart.map(item => `- ${item.quantity}x ${item.name}`).join('\n');
+        const message = `*New Order Received!*\n\n*Order ID:* ${order.id}\n*Customer:* ${user?.name || 'Guest'}\n*Amount:* ₹${total.toLocaleString('en-IN')}\n*Method:* ${paymentMethod}\n\n*Items Purchased:*\n${itemsString}`;
         fetch('/api/notify-admin', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -132,8 +133,9 @@ export default function Checkout() {
       const order = await placeOrder(fullAddress, 'UPI');
       clearCart();
 
-      // Notify admin via WhatsApp (Backend)
-      const message = `*New Order Received!*\n\n*Order ID:* ${order.id}\n*Customer:* ${user?.name || 'Guest'}\n*Amount:* ₹${total.toLocaleString('en-IN')}\n*Method:* UPI\n*UTR:* ${utrNumber}`;
+      // Notify admin via WhatsApp/Telegram (Backend)
+      const itemsString = cart.map(item => `- ${item.quantity}x ${item.name}`).join('\n');
+      const message = `*New Order Received!*\n\n*Order ID:* ${order.id}\n*Customer:* ${user?.name || 'Guest'}\n*Amount:* ₹${total.toLocaleString('en-IN')}\n*Method:* UPI\n*UTR:* ${utrNumber}\n\n*Items Purchased:*\n${itemsString}`;
       fetch('/api/notify-admin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
